@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
@@ -20,13 +22,17 @@ export default function App() {
         
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl min-w-[140px]">
-            Sign Up
-          </button>
-          
-          <button className="border-2 border-purple-400 text-purple-200 hover:bg-purple-600 hover:text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all duration-200 transform hover:scale-105 min-w-[140px]">
-            Login
-          </button>
+          <Link href="/signup">
+            <button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl min-w-[140px]">
+              Sign Up
+            </button>
+          </Link>
+
+          <Link href="/login">
+            <button className="border-2 border-purple-400 text-purple-200 hover:bg-purple-600 hover:text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all duration-200 transform hover:scale-105 min-w-[140px]">
+              Login
+            </button>
+          </Link>
         </div>
         
         {/* Decorative Elements */}
