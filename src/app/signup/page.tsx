@@ -38,7 +38,7 @@ export default function SignupPage() {
     if (error) {
       setMessage(error.message)
     } else {
-      router.push("/dashboard")
+      router.push("/profile")
     }
     
     setIsLoading(false)
