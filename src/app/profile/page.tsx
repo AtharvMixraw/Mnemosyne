@@ -41,6 +41,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   
   useEffect(() => {
@@ -111,10 +112,9 @@ export default function ProfilePage() {
       const e = err as Error
       console.error("Error loading user profile:", e.message)
     } finally {
-      setLoading(false) // <-- fixes unused setLoading warning
+      setLoading(false)
     }
   }
-  
   
   async function updateProfile() {
     try {
@@ -203,6 +203,38 @@ export default function ProfilePage() {
       setMessage('Error uploading profile picture')
     } finally {
       setUploading(false)
+    }
+  }
+
+  async function deleteExperience(experienceId: string) {
+    if (!confirm('Are you sure you want to delete this experience? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeleting(experienceId)
+      setMessage('')
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user logged in')
+
+      const { error } = await supabase
+        .from('interview_experiences')
+        .delete()
+        .eq('id', experienceId)
+        .eq('user_id', user.id) // Extra security: ensure user can only delete their own experiences
+
+      if (error) throw error
+
+      // Remove from local state
+      setExperiences(prev => prev.filter(exp => exp.id !== experienceId))
+      setMessage('Experience deleted successfully!')
+      setTimeout(() => setMessage(''), 3000)
+    } catch (error) {
+      console.error('Error deleting experience:', error)
+      setMessage('Error deleting experience')
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -360,36 +392,87 @@ export default function ProfilePage() {
         </div>
         {/* ---- Interview Experiences Section ---- */}
         <div className="mt-12">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-purple-200">Your Interview Experiences</h2>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-purple-200">Your Interview Experiences</h2>
+              <p className="text-gray-400 text-sm mt-1">Manage your shared experiences</p>
+            </div>
             <Link 
               href="/interview" 
-              className="bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-lg shadow"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition-colors duration-200 flex items-center gap-2"
             >
-              + Add New
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Add New
             </Link>
           </div>
 
           {experiences.length === 0 ? (
-            <p className="text-gray-400">You haven’t added any experiences yet.</p>
+            <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-8 text-center">
+              <div className="text-gray-400 text-6xl mb-4">📝</div>
+              <h3 className="text-xl font-semibold text-gray-300 mb-2">No experiences yet</h3>
+              <p className="text-gray-400 mb-6">Share your first interview experience to help others!</p>
+              <Link 
+                href="/interview" 
+                className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors duration-200"
+              >
+                Share Your Experience
+              </Link>
+            </div>
           ) : (
             <div className="space-y-4">
               {experiences.map(exp => (
                 <div 
                   key={exp.id} 
-                  className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 shadow"
+                  className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200"
                 >
-                  <h3 className="text-lg font-bold text-white">{exp.heading}</h3>
-                  <p className="text-gray-300 mt-2">{exp.content}</p>
-                  <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-400">
-                    <span className="px-2 py-1 bg-slate-700 rounded">Position: {exp.position}</span>
-                    <span className="px-2 py-1 bg-slate-700 rounded">Mode: {exp.mode}</span>
-                    <span className={`px-2 py-1 rounded ${exp.selected ? 'bg-green-700' : 'bg-red-700'}`}>
-                      {exp.selected ? "Selected" : "Not Selected"}
-                    </span>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-white mb-2">{exp.heading}</h3>
+                      <div className="flex flex-wrap gap-3 text-sm">
+                        {exp.position && (
+                          <span className="px-3 py-1 bg-slate-700/70 text-gray-200 rounded-lg">
+                            📍 {exp.position}
+                          </span>
+                        )}
+                        {exp.mode && (
+                          <span className="px-3 py-1 bg-slate-700/70 text-gray-200 rounded-lg">
+                            💼 {exp.mode}
+                          </span>
+                        )}
+                        <span className={`px-3 py-1 rounded-lg font-medium ${exp.selected ? 'bg-green-600/80 text-white' : 'bg-red-600/80 text-white'}`}>
+                          {exp.selected ? "✅ Selected" : "❌ Not Selected"}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => deleteExperience(exp.id)}
+                      disabled={deleting === exp.id}
+                      className="ml-4 p-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 hover:border-red-500/60 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                      title="Delete experience"
+                    >
+                      {deleting === exp.id ? (
+                        <div className="animate-spin w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full"></div>
+                      ) : (
+                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {new Date(exp.created_at).toLocaleString()}
+                  
+                  <p className="text-gray-300 leading-relaxed mb-4 line-clamp-3">{exp.content}</p>
+                  
+                  <p className="text-xs text-gray-500">
+                    📅 {new Date(exp.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </p>
                 </div>
               ))}
@@ -398,9 +481,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Navigation */}
-        <div className="text-center mt-6">
-          <Link href="/dashboard" className="text-purple-400 hover:text-purple-300 text-sm transition-colors duration-200">
-            Go to Dashboard →
+        <div className="text-center mt-8">
+          <Link href="/dashboard" className="text-purple-400 hover:text-purple-300 transition-colors duration-200 inline-flex items-center gap-2">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+            Go to Dashboard
           </Link>
         </div>
       </div>
