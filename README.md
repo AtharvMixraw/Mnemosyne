@@ -1,1 +1,1 @@
-![Alt text]("C:\Users\Administrator\Desktop\mnemosyne-flow.png")
+![Flow]("assets/mnemosyne-flow.png")
