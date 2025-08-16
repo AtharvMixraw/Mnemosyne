@@ -22,7 +22,10 @@ export default function LoginPage() {
     if (error) {
       setMessage(error.message)
     } else {
-      router.push("/profile")
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        router.push("/profile");
+      }
     }
     
     setIsLoading(false)

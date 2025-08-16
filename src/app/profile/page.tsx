@@ -14,6 +14,16 @@ interface Profile {
   avatar_url: string
 }
 
+interface InterviewExperience {
+  id: string
+  heading: string
+  content: string
+  position: string
+  mode: string
+  selected: boolean
+  created_at: string
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -27,6 +37,7 @@ export default function ProfilePage() {
     avatar_url: ''
   })
   
+  const [experiences, setExperiences] = useState<InterviewExperience[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -85,6 +96,16 @@ export default function ProfilePage() {
         })
       } else {
         setProfile(profileData)
+      }
+      // fetch interview experiences
+      const { data: expData, error: expError } = await supabase
+        .from("interview_experiences")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+      
+      if (!expError && expData) {
+        setExperiences(expData as InterviewExperience[])
       }
     } catch (err) {
       const e = err as Error
@@ -336,6 +357,44 @@ export default function ProfilePage() {
               </button>
             </div>
           </form>
+        </div>
+        {/* ---- Interview Experiences Section ---- */}
+        <div className="mt-12">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-purple-200">Your Interview Experiences</h2>
+            <Link 
+              href="/interview" 
+              className="bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-lg shadow"
+            >
+              + Add New
+            </Link>
+          </div>
+
+          {experiences.length === 0 ? (
+            <p className="text-gray-400">You haven’t added any experiences yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {experiences.map(exp => (
+                <div 
+                  key={exp.id} 
+                  className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 shadow"
+                >
+                  <h3 className="text-lg font-bold text-white">{exp.heading}</h3>
+                  <p className="text-gray-300 mt-2">{exp.content}</p>
+                  <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-400">
+                    <span className="px-2 py-1 bg-slate-700 rounded">Position: {exp.position}</span>
+                    <span className="px-2 py-1 bg-slate-700 rounded">Mode: {exp.mode}</span>
+                    <span className={`px-2 py-1 rounded ${exp.selected ? 'bg-green-700' : 'bg-red-700'}`}>
+                      {exp.selected ? "Selected" : "Not Selected"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {new Date(exp.created_at).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
