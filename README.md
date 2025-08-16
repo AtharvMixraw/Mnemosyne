@@ -1,1 +1,1 @@
-![Flow]("assets/mnemosyne-flow.png")
+![alt text](assets/mnemosyne-flow.png)
