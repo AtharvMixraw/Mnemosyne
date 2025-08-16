@@ -18,9 +18,16 @@ interface Experience {
   user_id: string
 }
 
+interface Profile {
+  id: string
+  name: string
+  avatar_url: string
+}
+
 export default function Dashboard() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +53,7 @@ export default function Dashboard() {
 
         setUserEmail(session.user.email ?? null)
         setUserId(session.user.id)
-        await fetchExperiences()
+        await Promise.all([fetchExperiences(), fetchProfile(session.user.id)])
       } catch (err) {
         console.error("Auth check failed:", err)
         router.push("/login")
@@ -55,6 +62,27 @@ export default function Dashboard() {
 
     checkAuth()
   }, [router])
+
+  async function fetchProfile(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, avatar_url")
+        .eq("id", userId)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Profile fetch error:", error)
+        return
+      }
+
+      if (data) {
+        setProfile(data)
+      }
+    } catch (err) {
+      console.error("Error fetching profile:", err)
+    }
+  }
 
   async function fetchExperiences() {
     try {
@@ -131,24 +159,47 @@ export default function Dashboard() {
       <div className="max-w-3xl mx-auto">
         
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-white mb-2">Interview Experiences</h1>
-          {userEmail && (
-            <p className="text-gray-300 mb-4">Logged in as: {userEmail}</p>
-          )}
-          <div className="flex justify-center gap-4">
-            <Link
-              href="/interview"
-              className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow"
-            >
-              + Add Experience
+        <div className="relative mb-10">
+          {/* Profile Picture - Top Right */}
+          <div className="absolute top-0 right-0">
+            <Link href="/profile" className="block">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 border-2 border-purple-400/30 hover:border-purple-400 transition-colors cursor-pointer group">
+                {profile?.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-purple-200 font-bold bg-gradient-to-br from-purple-500 to-blue-500">
+                    {profile?.name 
+                      ? profile.name.charAt(0).toUpperCase() 
+                      : userEmail 
+                        ? userEmail.charAt(0).toUpperCase() 
+                        : "U"}
+                  </div>
+                )}
+              </div>
             </Link>
-            <button
-              onClick={handleLogout}
-              className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow"
-            >
-              Logout
-            </button>
+          </div>
+
+          {/* Title and Actions - Centered */}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white mb-6">Interview Experiences</h1>
+            <div className="flex justify-center gap-4">
+              <Link
+                href="/interview"
+                className="px-5 py-2 bg-black hover:bg-gray-700 text-white rounded-lg shadow"
+              >
+                Add Experience
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="px-5 py-2 bg-black hover:bg-gray-700 text-white rounded-lg shadow"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
 

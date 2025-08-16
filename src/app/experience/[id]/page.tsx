@@ -149,12 +149,12 @@ export default function ExperienceDetails() {
             <div className="flex flex-wrap gap-4 text-sm">
               {experience.position && (
                 <span className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg">
-                  📍 Position: {experience.position}
+                   Position: {experience.position}
                 </span>
               )}
               {experience.mode && (
                 <span className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg">
-                  💼 Mode: {experience.mode}
+                   Mode: {experience.mode}
                 </span>
               )}
               <span
@@ -164,7 +164,7 @@ export default function ExperienceDetails() {
                     : "bg-red-600 text-white"
                 }`}
               >
-                {experience.selected ? "✅ Selected" : "❌ Not Selected"}
+                {experience.selected ? " Selected" : "Not Selected"}
               </span>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function ExperienceDetails() {
           {/* Metadata */}
           <div className="mb-6 pb-6 border-b border-slate-700">
             <p className="text-gray-400 text-sm">
-              📅 Shared on {new Date(experience.created_at).toLocaleDateString('en-US', {
+               Shared on {new Date(experience.created_at).toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
