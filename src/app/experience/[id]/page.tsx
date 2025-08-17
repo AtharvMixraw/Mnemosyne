@@ -18,6 +18,139 @@ interface Experience {
   user_id: string;
 }
 
+// Component to render formatted content safely
+const FormattedContent = ({ content }: { content: string }) => {
+  const lines = content.split('\n');
+  
+  return (
+    <div className="text-gray-200 leading-relaxed space-y-3">
+      {lines.map((line, index) => {
+        // Skip empty lines but preserve spacing
+        if (!line.trim()) {
+          return <div key={index} className="h-2"></div>;
+        }
+
+        // Bold text with potential italic inside
+        if (line.includes('**')) {
+          const parts = line.split(/(\*\*.*?\*\*)/g);
+          return (
+            <p key={index} className="mb-2">
+              {parts.map((part, partIndex) => {
+                if (part.startsWith('**') && part.endsWith('**')) {
+                  const boldContent = part.slice(2, -2);
+                  // Check for italic inside bold
+                  if (boldContent.includes('*')) {
+                    const italicParts = boldContent.split(/(\*.*?\*)/g);
+                    return (
+                      <strong key={partIndex} className="font-bold text-white">
+                        {italicParts.map((italicPart, italicIndex) => {
+                          if (italicPart.startsWith('*') && italicPart.endsWith('*')) {
+                            return <em key={italicIndex} className="italic">{italicPart.slice(1, -1)}</em>;
+                          }
+                          return italicPart;
+                        })}
+                      </strong>
+                    );
+                  }
+                  return <strong key={partIndex} className="font-bold text-white">{boldContent}</strong>;
+                }
+                
+                // Handle italic in non-bold parts
+                if (part.includes('*') && !part.includes('**')) {
+                  const italicParts = part.split(/(\*.*?\*)/g);
+                  return (
+                    <span key={partIndex}>
+                      {italicParts.map((italicPart, italicIndex) => {
+                        if (italicPart.startsWith('*') && italicPart.endsWith('*')) {
+                          return <em key={italicIndex} className="italic text-purple-200">{italicPart.slice(1, -1)}</em>;
+                        }
+                        return italicPart;
+                      })}
+                    </span>
+                  );
+                }
+                
+                return part;
+              })}
+            </p>
+          );
+        }
+        
+        // Italic text (without bold)
+        if (line.includes('*') && !line.includes('**')) {
+          const parts = line.split(/(\*.*?\*)/g);
+          return (
+            <p key={index} className="mb-2">
+              {parts.map((part, partIndex) => {
+                if (part.startsWith('*') && part.endsWith('*')) {
+                  return <em key={partIndex} className="italic text-purple-200">{part.slice(1, -1)}</em>;
+                }
+                return part;
+              })}
+            </p>
+          );
+        }
+        
+        // Bullet points
+        if (line.startsWith('- ')) {
+          return (
+            <div key={index} className="flex items-start mb-2 ml-4">
+              <span className="text-purple-400 mr-3 mt-1 flex-shrink-0">•</span>
+              <span className="flex-1">{line.slice(2)}</span>
+            </div>
+          );
+        }
+        
+        // Numbered lists
+        if (line.match(/^\d+\. /)) {
+          const match = line.match(/^(\d+)\. (.+)$/);
+          if (match) {
+            return (
+              <div key={index} className="flex items-start mb-2 ml-4">
+                <span className="text-purple-400 mr-3 mt-0 flex-shrink-0 font-medium">{match[1]}.</span>
+                <span className="flex-1">{match[2]}</span>
+              </div>
+            );
+          }
+        }
+        
+        // Quotes
+        if (line.startsWith('> ')) {
+          return (
+            <blockquote key={index} className="border-l-4 border-purple-400 pl-6 py-2 my-4 bg-slate-800/30 rounded-r-lg">
+              <p className="italic text-gray-300 text-lg">{line.slice(2)}</p>
+            </blockquote>
+          );
+        }
+        
+        // Headers (if you want to support # headers)
+        if (line.startsWith('# ')) {
+          return (
+            <h3 key={index} className="text-xl font-bold text-white mt-6 mb-3 border-b border-slate-700 pb-2">
+              {line.slice(2)}
+            </h3>
+          );
+        }
+        
+        if (line.startsWith('## ')) {
+          return (
+            <h4 key={index} className="text-lg font-semibold text-purple-200 mt-4 mb-2">
+              {line.slice(3)}
+            </h4>
+          );
+        }
+        
+        // Regular paragraphs
+        return (
+          <p key={index} className="mb-2 leading-relaxed">
+            {line}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function ExperienceDetails() {
   const { id } = useParams();
   const [experience, setExperience] = useState<Experience | null>(null);
@@ -164,7 +297,7 @@ export default function ExperienceDetails() {
                     : "bg-red-600 text-white"
                 }`}
               >
-                {experience.selected ? " Selected" : "Not Selected"}
+                {experience.selected ? "Selected" : "Not Selected"}
               </span>
             </div>
           </div>
@@ -185,12 +318,10 @@ export default function ExperienceDetails() {
 
           {/* Experience Content */}
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-purple-200 mb-4">Interview Experience</h2>
+            <h2 className="text-2xl font-semibold text-purple-200 mb-4"> Interview Experience</h2>
             <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6">
               {experience.content ? (
-                <div className="text-gray-200 leading-relaxed whitespace-pre-wrap">
-                  {experience.content}
-                </div>
+                <FormattedContent content={experience.content} />
               ) : (
                 <p className="text-gray-400 italic">No content provided for this experience.</p>
               )}
@@ -215,7 +346,7 @@ export default function ExperienceDetails() {
           </div>
         </div>
 
-        {/* Debug Info (remove in production) */}
+        {/* Debug Info (remove in production)
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-6 p-4 bg-slate-800 rounded-lg">
             <details>
@@ -225,7 +356,7 @@ export default function ExperienceDetails() {
               </pre>
             </details>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
