@@ -206,7 +206,11 @@ export default function ProfilePage() {
     }
   }
 
-  async function deleteExperience(experienceId: string) {
+  async function deleteExperience(experienceId: string, event: React.MouseEvent) {
+    // Prevent the click from bubbling up to the Link
+    event.preventDefault()
+    event.stopPropagation()
+
     if (!confirm('Are you sure you want to delete this experience? This action cannot be undone.')) {
       return
     }
@@ -423,58 +427,61 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-4">
               {experiences.map(exp => (
-                <div 
-                  key={exp.id} 
-                  className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-white mb-2">{exp.heading}</h3>
-                      <div className="flex flex-wrap gap-3 text-sm">
-                        {exp.position && (
-                          <span className="px-3 py-1 bg-slate-700/70 text-gray-200 rounded-lg">
-                            📍 {exp.position}
+                <Link key={exp.id} href={`/experience/${exp.id}`} className="block">
+                  <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 hover:border-purple-500/30 cursor-pointer">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-white mb-2 hover:text-purple-100 transition-colors">
+                          {exp.heading || 'Untitled Experience'}
+                        </h3>
+                        <div className="flex flex-wrap gap-3 text-sm">
+                          {exp.position && (
+                            <span className="px-3 py-1 bg-slate-700/70 text-gray-200 rounded-lg">
+                               {exp.position}
+                            </span>
+                          )}
+                          {exp.mode && (
+                            <span className="px-3 py-1 bg-slate-700/70 text-gray-200 rounded-lg">
+                               {exp.mode}
+                            </span>
+                          )}
+                          <span className={`px-3 py-1 rounded-lg font-medium ${exp.selected ? 'bg-green-600/80 text-white' : 'bg-red-600/80 text-white'}`}>
+                            {exp.selected ? " Selected" : " Not Selected"}
                           </span>
-                        )}
-                        {exp.mode && (
-                          <span className="px-3 py-1 bg-slate-700/70 text-gray-200 rounded-lg">
-                            💼 {exp.mode}
-                          </span>
-                        )}
-                        <span className={`px-3 py-1 rounded-lg font-medium ${exp.selected ? 'bg-green-600/80 text-white' : 'bg-red-600/80 text-white'}`}>
-                          {exp.selected ? "✅ Selected" : "❌ Not Selected"}
-                        </span>
+                        </div>
                       </div>
+                      
+                      <button
+                        onClick={(e) => deleteExperience(exp.id, e)}
+                        disabled={deleting === exp.id}
+                        className="ml-4 p-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 hover:border-red-500/60 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                        title="Delete experience"
+                      >
+                        {deleting === exp.id ? (
+                          <div className="animate-spin w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full"></div>
+                        ) : (
+                          <svg className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
                     </div>
                     
-                    <button
-                      onClick={() => deleteExperience(exp.id)}
-                      disabled={deleting === exp.id}
-                      className="ml-4 p-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 hover:border-red-500/60 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
-                      title="Delete experience"
-                    >
-                      {deleting === exp.id ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full"></div>
-                      ) : (
-                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </button>
+                    <p className="text-gray-300 leading-relaxed mb-4 line-clamp-3 hover:text-gray-200 transition-colors">
+                      {exp.content || 'No content provided'}
+                    </p>
+                    
+                    <p className="text-xs text-gray-500">
+                       {new Date(exp.created_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
                   </div>
-                  
-                  <p className="text-gray-300 leading-relaxed mb-4 line-clamp-3">{exp.content}</p>
-                  
-                  <p className="text-xs text-gray-500">
-                    📅 {new Date(exp.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
+                </Link>
               ))}
             </div>
           )}
