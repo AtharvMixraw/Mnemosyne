@@ -1,21 +1,28 @@
-// app/experience/[id]/page.tsx
+// app/experience/[id]/page.tsx - Updated version
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import Link from "next/link";
 
 interface Experience {
   id: string;
-  heading: string;     // Matches your DB schema
-  content: string;     // Matches your DB schema
+  heading: string;
+  content: string;
   position: string;
   mode: string;
-  selected: boolean;   // Matches your DB schema (boolean, not string)
+  selected: boolean;
   created_at: string;
   user_id: string;
+  profiles?: {
+    id: string;
+    name: string;
+    avatar_url: string;
+    about: string;
+    linkedin: string;
+  };
 }
 
 // Component to render formatted content safely
@@ -153,55 +160,79 @@ const FormattedContent = ({ content }: { content: string }) => {
 
 export default function ExperienceDetails() {
   const { id } = useParams();
+  const router = useRouter();
   const [experience, setExperience] = useState<Experience | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    getCurrentUser();
+    
     if (!id) {
       setError("No experience ID provided");
       setLoading(false);
       return;
     }
 
-    const fetchExperience = async () => {
-      try {
-        setError(null);
-        
-        const { data, error } = await supabase
-          .from("interview_experiences")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (error) {
-          console.error("Supabase error:", error);
-          if (error.code === 'PGRST116') {
-            setError("Experience not found");
-          } else {
-            setError(`Failed to load experience: ${error.message}`);
-          }
-          return;
-        }
-
-        if (!data) {
-          setError("Experience not found");
-          return;
-        }
-
-        console.log("Fetched experience:", data);
-        setExperience(data);
-        
-      } catch (err) {
-        console.error("Error fetching experience:", err);
-        setError("Failed to load experience");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchExperience();
   }, [id]);
+
+  const getCurrentUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setCurrentUserId(session.user.id)
+      }
+    } catch (err) {
+      console.error("Error getting current user:", err)
+    }
+  }
+
+  const fetchExperience = async () => {
+    try {
+      setError(null);
+      
+      const { data, error } = await supabase
+        .from("interview_experiences")
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            name,
+            avatar_url,
+            about,
+            linkedin
+          )
+        `)
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        if (error.code === 'PGRST116') {
+          setError("Experience not found");
+        } else {
+          setError(`Failed to load experience: ${error.message}`);
+        }
+        return;
+      }
+
+      if (!data) {
+        setError("Experience not found");
+        return;
+      }
+
+      console.log("Fetched experience:", data);
+      setExperience(data);
+      
+    } catch (err) {
+      console.error("Error fetching experience:", err);
+      setError("Failed to load experience");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -302,18 +333,55 @@ export default function ExperienceDetails() {
             </div>
           </div>
 
-          {/* Metadata */}
+          {/* Author Info */}
           <div className="mb-6 pb-6 border-b border-slate-700">
-            <p className="text-gray-400 text-sm">
-               Shared on {new Date(experience.created_at).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </p>
+            <div 
+              className="flex items-center gap-4 cursor-pointer hover:bg-slate-700/30 rounded-lg p-3 -m-3 transition-colors"
+              onClick={() => {
+                if (experience.user_id === currentUserId) {
+                  router.push('/profile')
+                } else {
+                  router.push(`/profile/${experience.user_id}`)
+                }
+              }}
+            >
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 text-xl font-bold">
+                {experience.profiles?.avatar_url ? (
+                  <img 
+                    src={experience.profiles.avatar_url} 
+                    alt={experience.profiles.name || "User"} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  experience.profiles?.name 
+                    ? experience.profiles.name.charAt(0).toUpperCase()
+                    : "U"
+                )}
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white hover:text-purple-200 transition-colors">
+                  {experience.user_id === currentUserId 
+                    ? "You" 
+                    : (experience.profiles?.name || "Unknown User")
+                  }
+                </h3>
+                <p className="text-gray-400 text-sm">
+                   Shared on {new Date(experience.created_at).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+                {experience.profiles?.about && (
+                  <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+                    {experience.profiles.about}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Experience Content */}
@@ -337,12 +405,25 @@ export default function ExperienceDetails() {
               ← Back to All Experiences
             </Link>
             
-            <Link
-              href="/interview"
-              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
-            >
-              Share Your Experience +
-            </Link>
+            <div className="flex gap-3">
+              {experience.user_id !== currentUserId && (
+                <button
+                  onClick={() => {
+                    router.push(`/profile/${experience.user_id}`)
+                  }}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium"
+                >
+                  View Profile
+                </button>
+              )}
+              
+              <Link
+                href="/interview"
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+              >
+                Share Your Experience +
+              </Link>
+            </div>
           </div>
         </div>
 

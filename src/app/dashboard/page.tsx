@@ -16,6 +16,13 @@ interface Experience {
   selected: boolean
   created_at: string
   user_id: string
+  profiles?: {
+    id: string
+    name: string
+    avatar_url: string
+    about: string
+    linkedin: string
+  }
 }
 
 interface Profile {
@@ -86,203 +93,187 @@ export default function Dashboard() {
     }
   }
 
-  // Fetch ALL experiences from all users (public feed)
-  async function fetchExperiences() {
-    try {
-      setError(null)
-      
-      const { data, error } = await supabase
-        .from("interview_experiences")
-        .select("*")
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Supabase query error:", error)
-        setError(`Failed to fetch experiences: ${error.message}`)
-        return
-      }
-
-      console.log("Raw data from Supabase:", data)
-      
-      if (!data) {
-        console.log("No data returned from query")
-        setExperiences([])
-        return
-      }
-
-      setExperiences(data as Experience[])
-      
-    } catch (err) {
-      console.error("Error fetching experiences:", err)
-      setError("Failed to load experiences")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Enhanced delete function with detailed debugging
-async function deleteExperience(experienceId: string, experienceUserId: string) {
-  console.log('🗑️ Delete attempt started:', { experienceId, experienceUserId, currentUserId: userId })
-  
-  // Check if the experience belongs to the current user
-  if (experienceUserId !== userId) {
-    console.log('❌ Permission denied: Experience belongs to different user')
-    setMessage('You can only delete your own experiences')
-    setTimeout(() => setMessage(''), 3000)
-    return
-  }
-
-  if (!confirm('Are you sure you want to delete this experience? This action cannot be undone.')) {
-    console.log('❌ User cancelled deletion')
-    return
-  }
-
+  // After adding the foreign key constraint, use this query:
+async function fetchExperiences() {
   try {
-    setDeleting(experienceId)
-    setMessage('')
-    console.log('🔄 Starting deletion process...')
-
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError) {
-      console.error('❌ Error getting user:', userError)
-      throw userError
-    }
-    if (!user) {
-      console.error('❌ No user found')
-      throw new Error('No user logged in')
-    }
-    console.log('✅ User authenticated:', user.id)
-
-    // First, verify the record exists and belongs to the user
-    console.log('🔍 Verifying record exists...')
-    const { data: existingRecord, error: verifyError } = await supabase
-      .from('interview_experiences')
-      .select('id, user_id, heading')
-      .eq('id', experienceId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (verifyError) {
-      console.error('❌ Error verifying record:', verifyError)
-      throw new Error(`Verification failed: ${verifyError.message}`)
-    }
-
-    if (!existingRecord) {
-      console.error('❌ Record not found or permission denied')
-      throw new Error('Experience not found or you do not have permission to delete it')
-    }
-
-    console.log('✅ Record verified:', existingRecord)
-
-    // Perform the delete operation
-    console.log('🗑️ Executing delete operation...')
-    const { data: deleteData, error: deleteError } = await supabase
-      .from('interview_experiences')
-      .delete()
-      .eq('id', experienceId)
-      .eq('user_id', user.id)
-      .select() // This will return the deleted rows
-
-    if (deleteError) {
-      console.error('❌ Supabase delete error:', deleteError)
-      throw new Error(`Delete failed: ${deleteError.message}`)
-    }
-
-    console.log('✅ Delete operation result:', deleteData)
-
-    // Verify the record is actually deleted
-    console.log('🔍 Verifying deletion...')
-    const { data: verifyDeletion, error: verifyDelError } = await supabase
-      .from('interview_experiences')
-      .select('id')
-      .eq('id', experienceId)
-      .maybeSingle()
-
-    if (verifyDelError && verifyDelError.code !== 'PGRST116') {
-      console.error('❌ Error verifying deletion:', verifyDelError)
-    } else if (verifyDeletion) {
-      console.warn('⚠️ Record still exists after deletion!', verifyDeletion)
-      throw new Error('Record still exists after deletion attempt')
-    } else {
-      console.log('✅ Deletion verified - record no longer exists')
-    }
-
-    // Update local state
-    console.log('🔄 Updating local state...')
-    setExperiences(prev => {
-      const newExperiences = prev.filter(exp => exp.id !== experienceId)
-      console.log(`📊 Updated experiences count: ${prev.length} → ${newExperiences.length}`)
-      return newExperiences
-    })
-
-    setMessage('Experience deleted successfully!')
-    console.log('✅ Deletion completed successfully')
+    setError(null)
     
-    // Clear success message after 3 seconds
-    setTimeout(() => setMessage(''), 3000)
-
-  } catch (error) {
-    console.error('💥 Error in deleteExperience:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Error deleting experience'
-    setMessage(`Error: ${errorMessage}`)
-    
-    // Clear error message after 5 seconds
-    setTimeout(() => setMessage(''), 5000)
-  } finally {
-    setDeleting(null)
-    console.log('🏁 Delete operation finished')
-  }
-}
-
-// Add a function to manually check if a record exists (for debugging)
-async function debugCheckRecord(experienceId: string) {
-  console.log('🔍 Debug: Checking if record exists...')
-  try {
-    const { data, error } = await supabase
-      .from('interview_experiences')
-      .select('*')
-      .eq('id', experienceId)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Debug error:', error)
-    } else {
-      console.log('Debug result:', data ? 'Record EXISTS' : 'Record NOT FOUND', data)
-    }
-  } catch (err) {
-    console.error('Debug exception:', err)
-  }
-}
-
-// Also add a refresh function to force reload from database
-async function forceRefreshExperiences() {
-  console.log('🔄 Force refreshing experiences from database...')
-  setLoading(true)
-  
-  try {
     const { data, error } = await supabase
       .from("interview_experiences")
-      .select("*")
+      .select(`
+        *,
+        profiles!user_id (
+          id,
+          name,
+          avatar_url,
+          about,
+          linkedin
+        )
+      `)
       .order("created_at", { ascending: false })
 
     if (error) {
-      console.error("Force refresh error:", error)
-      setError(`Failed to refresh: ${error.message}`)
+      console.error("Supabase query error:", error)
+      setError(`Failed to fetch experiences: ${error.message}`)
       return
     }
 
-    console.log('🔄 Fresh data from database:', data?.length || 0, 'records')
-    setExperiences(data as Experience[] || [])
-    setError(null)
+    console.log("Raw data from Supabase:", data)
+    
+    if (!data) {
+      console.log("No data returned from query")
+      setExperiences([])
+      return
+    }
+
+    setExperiences(data as Experience[])
     
   } catch (err) {
-    console.error("Force refresh exception:", err)
-    setError("Failed to refresh experiences")
+    console.error("Error fetching experiences:", err)
+    setError("Failed to load experiences")
   } finally {
     setLoading(false)
   }
 }
+
+// Also fix the forceRefreshExperiences function
+
+  // Enhanced delete function with detailed debugging
+  async function deleteExperience(experienceId: string, experienceUserId: string) {
+    console.log('🗑️ Delete attempt started:', { experienceId, experienceUserId, currentUserId: userId })
+    
+    // Check if the experience belongs to the current user
+    if (experienceUserId !== userId) {
+      console.log('❌ Permission denied: Experience belongs to different user')
+      setMessage('You can only delete your own experiences')
+      setTimeout(() => setMessage(''), 3000)
+      return
+    }
+
+    if (!confirm('Are you sure you want to delete this experience? This action cannot be undone.')) {
+      console.log('❌ User cancelled deletion')
+      return
+    }
+
+    try {
+      setDeleting(experienceId)
+      setMessage('')
+      console.log('🔄 Starting deletion process...')
+
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError) {
+        console.error('❌ Error getting user:', userError)
+        throw userError
+      }
+      if (!user) {
+        console.error('❌ No user found')
+        throw new Error('No user logged in')
+      }
+      console.log('✅ User authenticated:', user.id)
+
+      // First, verify the record exists and belongs to the user
+      console.log('🔍 Verifying record exists...')
+      const { data: existingRecord, error: verifyError } = await supabase
+        .from('interview_experiences')
+        .select('id, user_id, heading')
+        .eq('id', experienceId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (verifyError) {
+        console.error('❌ Error verifying record:', verifyError)
+        throw new Error(`Verification failed: ${verifyError.message}`)
+      }
+
+      if (!existingRecord) {
+        console.error('❌ Record not found or permission denied')
+        throw new Error('Experience not found or you do not have permission to delete it')
+      }
+
+      console.log('✅ Record verified:', existingRecord)
+
+      // Perform the delete operation
+      console.log('🗑️ Executing delete operation...')
+      const { data: deleteData, error: deleteError } = await supabase
+        .from('interview_experiences')
+        .delete()
+        .eq('id', experienceId)
+        .eq('user_id', user.id)
+        .select() // This will return the deleted rows
+
+      if (deleteError) {
+        console.error('❌ Supabase delete error:', deleteError)
+        throw new Error(`Delete failed: ${deleteError.message}`)
+      }
+
+      console.log('✅ Delete operation result:', deleteData)
+
+      // Verify the record is actually deleted
+      console.log('🔍 Verifying deletion...')
+      const { data: verifyDeletion, error: verifyDelError } = await supabase
+        .from('interview_experiences')
+        .select('id')
+        .eq('id', experienceId)
+        .maybeSingle()
+
+      if (verifyDelError && verifyDelError.code !== 'PGRST116') {
+        console.error('❌ Error verifying deletion:', verifyDelError)
+      } else if (verifyDeletion) {
+        console.warn('⚠️ Record still exists after deletion!', verifyDeletion)
+        throw new Error('Record still exists after deletion attempt')
+      } else {
+        console.log('✅ Deletion verified - record no longer exists')
+      }
+
+      // Update local state
+      console.log('🔄 Updating local state...')
+      setExperiences(prev => {
+        const newExperiences = prev.filter(exp => exp.id !== experienceId)
+        console.log(`📊 Updated experiences count: ${prev.length} → ${newExperiences.length}`)
+        return newExperiences
+      })
+
+      setMessage('Experience deleted successfully!')
+      console.log('✅ Deletion completed successfully')
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setMessage(''), 3000)
+
+    } catch (error) {
+      console.error('💥 Error in deleteExperience:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Error deleting experience'
+      setMessage(`Error: ${errorMessage}`)
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setMessage(''), 5000)
+    } finally {
+      setDeleting(null)
+      console.log('🏁 Delete operation finished')
+    }
+  }
+
+  // Add a function to manually check if a record exists (for debugging)
+  async function debugCheckRecord(experienceId: string) {
+    console.log('🔍 Debug: Checking if record exists...')
+    try {
+      const { data, error } = await supabase
+        .from('interview_experiences')
+        .select('*')
+        .eq('id', experienceId)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Debug error:', error)
+      } else {
+        console.log('Debug result:', data ? 'Record EXISTS' : 'Record NOT FOUND', data)
+      }
+    } catch (err) {
+      console.error('Debug exception:', err)
+    }
+  }
+
+  // Also add a refresh function to force reload from database
 
   async function handleLogout() {
     try {
@@ -417,8 +408,17 @@ async function forceRefreshExperiences() {
                   </button>
                 )}
 
-                {/* Author Info */}
-                <div className="flex items-center gap-3 mb-4">
+                {/* Author Info - Now Clickable */}
+                <div 
+                  className="flex items-center gap-3 mb-4 cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 -m-2 transition-colors"
+                  onClick={() => {
+                    if (exp.user_id === userId) {
+                      router.push('/profile')
+                    } else {
+                      router.push(`/profile/${exp.user_id}`)
+                    }
+                  }}
+                >
                   <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 font-bold">
                     {exp.user_id === userId ? (
                       // Show user's own profile picture/initial
@@ -429,13 +429,17 @@ async function forceRefreshExperiences() {
                         userEmail ? userEmail.charAt(0).toUpperCase() : "U"
                       )
                     ) : (
-                      // Show anonymous for other users
-                      "A"
+                      // Show other user's profile picture/initial
+                      exp.profiles?.avatar_url ? (
+                        <img src={exp.profiles.avatar_url} alt={exp.profiles.name || "User"} className="w-full h-full object-cover" />
+                      ) : (
+                        exp.profiles?.name ? exp.profiles.name.charAt(0).toUpperCase() : "U"
+                      )
                     )}
                   </div>
                   <div>
-                    <p className="text-white font-semibold">
-                      {exp.user_id === userId ? "You" : "Anonymous User"}
+                    <p className="text-white font-semibold hover:text-purple-200 transition-colors">
+                      {exp.user_id === userId ? "You" : (exp.profiles?.name || "Unknown User")}
                     </p>
                     <p className="text-gray-400 text-sm">
                       {new Date(exp.created_at).toLocaleString()}
@@ -448,9 +452,6 @@ async function forceRefreshExperiences() {
                   <h2 className="text-xl font-bold text-purple-200 hover:text-purple-100 transition-colors">
                     {exp.heading || 'Untitled Experience'}
                   </h2>
-                  {/* <p className="text-gray-300 mt-2 line-clamp-3 hover:text-gray-200 transition-colors">
-                    {exp.content || 'No content provided'}
-                  </p> */}
                 </Link>
 
                 {/* Tags */}
