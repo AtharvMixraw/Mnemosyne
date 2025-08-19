@@ -16,8 +16,7 @@ export default function App() {
         
         {/* Description */}
         <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-2xl mx-auto leading-relaxed">
-          Your comprehensive platform for discovering, organizing, and accessing interviews from across the web. 
-          From thought leaders to industry experts, find all the conversations that matter in one centralized hub.
+        A collaborative platform where students share their interview experiences, helping peers prepare and succeed together.
         </p>
         
         {/* Action Buttons */}
