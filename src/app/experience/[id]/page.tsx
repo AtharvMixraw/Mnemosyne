@@ -1,4 +1,4 @@
-// app/experience/[id]/page.tsx - Updated version
+// app/experience/[id]/page.tsx - Updated version with likes functionality
 
 "use client";
 
@@ -23,6 +23,13 @@ interface Experience {
     about: string;
     linkedin: string;
   };
+}
+
+interface Like {
+  id: string;
+  user_id: string;
+  experience_id: string;
+  created_at: string;
 }
 
 // Component to render formatted content safely
@@ -165,6 +172,11 @@ export default function ExperienceDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Likes state
+  const [likesCount, setLikesCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likingInProgress, setLikingInProgress] = useState(false);
 
   useEffect(() => {
     getCurrentUser();
@@ -176,6 +188,7 @@ export default function ExperienceDetails() {
     }
 
     fetchExperience();
+    fetchLikes();
   }, [id]);
 
   const getCurrentUser = async () => {
@@ -231,6 +244,91 @@ export default function ExperienceDetails() {
       setError("Failed to load experience");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLikes = async () => {
+    try {
+      // Get total likes count
+      const { count, error: countError } = await supabase
+        .from("likes")
+        .select("*", { count: 'exact', head: true })
+        .eq("experience_id", id);
+
+      if (countError) {
+        console.error("Error fetching likes count:", countError);
+      } else {
+        setLikesCount(count || 0);
+      }
+
+      // Check if current user has liked this experience
+      if (currentUserId) {
+        const { data: userLike, error: likeError } = await supabase
+          .from("likes")
+          .select("id")
+          .eq("experience_id", id)
+          .eq("user_id", currentUserId)
+          .single();
+
+        if (likeError && likeError.code !== 'PGRST116') {
+          console.error("Error checking user like:", likeError);
+        } else {
+          setIsLiked(!!userLike);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching likes:", err);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!currentUserId) {
+      // Redirect to login if not authenticated
+      router.push('/login');
+      return;
+    }
+
+    if (likingInProgress) return;
+
+    try {
+      setLikingInProgress(true);
+
+      if (isLiked) {
+        // Unlike
+        const { error } = await supabase
+          .from("likes")
+          .delete()
+          .eq("experience_id", id)
+          .eq("user_id", currentUserId);
+
+        if (error) {
+          console.error("Error unliking:", error);
+          return;
+        }
+
+        setIsLiked(false);
+        setLikesCount(prev => prev - 1);
+      } else {
+        // Like
+        const { error } = await supabase
+          .from("likes")
+          .insert({
+            experience_id: id,
+            user_id: currentUserId
+          });
+
+        if (error) {
+          console.error("Error liking:", error);
+          return;
+        }
+
+        setIsLiked(true);
+        setLikesCount(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error("Error handling like:", err);
+    } finally {
+      setLikingInProgress(false);
     }
   };
 
@@ -396,6 +494,53 @@ export default function ExperienceDetails() {
             </div>
           </div>
 
+          {/* Like Section */}
+          <div className="mb-6 pb-6 border-b border-slate-700">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleLike}
+                disabled={likingInProgress || !currentUserId}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                  isLiked 
+                    ? "bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400" 
+                    : "bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/50 text-gray-400 hover:text-red-400"
+                } ${likingInProgress ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} ${
+                  !currentUserId ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                title={!currentUserId ? "Login to like this experience" : isLiked ? "Unlike" : "Like"}
+              >
+                {likingInProgress ? (
+                  <div className="animate-spin w-5 h-5 border-2 border-current border-t-transparent rounded-full"></div>
+                ) : (
+                  <svg 
+                    className={`w-5 h-5 transition-transform duration-200 ${isLiked ? "scale-110" : "hover:scale-110"}`} 
+                    fill={isLiked ? "currentColor" : "none"} 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                    />
+                  </svg>
+                )}
+                <span className="font-medium">
+                  {likesCount} {likesCount === 1 ? "Like" : "Likes"}
+                </span>
+              </button>
+              
+              {!currentUserId && (
+                <p className="text-gray-500 text-sm">
+                  <Link href="/login" className="text-purple-400 hover:text-purple-300 underline">
+                    Login
+                  </Link> to like this experience
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Actions */}
           <div className="flex justify-between items-center pt-6 border-t border-slate-700">
             <Link
@@ -426,18 +571,6 @@ export default function ExperienceDetails() {
             </div>
           </div>
         </div>
-
-        {/* Debug Info (remove in production)
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-6 p-4 bg-slate-800 rounded-lg">
-            <details>
-              <summary className="text-gray-400 cursor-pointer">Debug Info</summary>
-              <pre className="mt-2 text-xs text-gray-500 overflow-auto">
-                {JSON.stringify(experience, null, 2)}
-              </pre>
-            </details>
-          </div>
-        )} */}
       </div>
     </div>
   );

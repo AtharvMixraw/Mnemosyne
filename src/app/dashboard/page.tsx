@@ -1,4 +1,4 @@
-// app/dashboard/page.tsx
+// app/dashboard/page.tsx - Updated with likes functionality
 
 'use client'
 
@@ -23,6 +23,8 @@ interface Experience {
     about: string
     linkedin: string
   }
+  likes_count?: number
+  user_has_liked?: boolean
 }
 
 interface Profile {
@@ -39,6 +41,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [likingExperience, setLikingExperience] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const router = useRouter()
 
@@ -62,7 +65,7 @@ export default function Dashboard() {
 
         setUserEmail(session.user.email ?? null)
         setUserId(session.user.id)
-        await Promise.all([fetchExperiences(), fetchProfile(session.user.id)])
+        await Promise.all([fetchExperiences(session.user.id), fetchProfile(session.user.id)])
       } catch (err) {
         console.error("Auth check failed:", err)
         router.push("/login")
@@ -93,50 +96,72 @@ export default function Dashboard() {
     }
   }
 
-  // After adding the foreign key constraint, use this query:
-async function fetchExperiences() {
-  try {
-    setError(null)
-    
-    const { data, error } = await supabase
-      .from("interview_experiences")
-      .select(`
-        *,
-        profiles!user_id (
-          id,
-          name,
-          avatar_url,
-          about,
-          linkedin
-        )
-      `)
-      .order("created_at", { ascending: false })
+  async function fetchExperiences(currentUserId: string) {
+    try {
+      setError(null)
+      
+      const { data, error } = await supabase
+        .from("interview_experiences")
+        .select(`
+          *,
+          profiles!user_id (
+            id,
+            name,
+            avatar_url,
+            about,
+            linkedin
+          )
+        `)
+        .order("created_at", { ascending: false })
 
-    if (error) {
-      console.error("Supabase query error:", error)
-      setError(`Failed to fetch experiences: ${error.message}`)
-      return
+      if (error) {
+        console.error("Supabase query error:", error)
+        setError(`Failed to fetch experiences: ${error.message}`)
+        return
+      }
+
+      console.log("Raw data from Supabase:", data)
+      
+      if (!data) {
+        console.log("No data returned from query")
+        setExperiences([])
+        return
+      }
+
+      // Fetch likes data for each experience
+      const experiencesWithLikes = await Promise.all(
+        data.map(async (exp) => {
+          // Get likes count
+          const { count } = await supabase
+            .from("likes")
+            .select("*", { count: 'exact', head: true })
+            .eq("experience_id", exp.id)
+
+          // Check if current user has liked this experience
+          const { data: userLike } = await supabase
+            .from("likes")
+            .select("id")
+            .eq("experience_id", exp.id)
+            .eq("user_id", currentUserId)
+            .single()
+
+          return {
+            ...exp,
+            likes_count: count || 0,
+            user_has_liked: !!userLike
+          }
+        })
+      )
+
+      setExperiences(experiencesWithLikes as Experience[])
+      
+    } catch (err) {
+      console.error("Error fetching experiences:", err)
+      setError("Failed to load experiences")
+    } finally {
+      setLoading(false)
     }
-
-    console.log("Raw data from Supabase:", data)
-    
-    if (!data) {
-      console.log("No data returned from query")
-      setExperiences([])
-      return
-    }
-
-    setExperiences(data as Experience[])
-    
-  } catch (err) {
-    console.error("Error fetching experiences:", err)
-    setError("Failed to load experiences")
-  } finally {
-    setLoading(false)
   }
-}
-
-// Also fix the forceRefreshExperiences function
 
   // Enhanced delete function with detailed debugging
   async function deleteExperience(experienceId: string, experienceUserId: string) {
@@ -193,14 +218,14 @@ async function fetchExperiences() {
 
       console.log('✅ Record verified:', existingRecord)
 
-      // Perform the delete operation
+      // Perform the delete operation (likes will be automatically deleted due to CASCADE)
       console.log('🗑️ Executing delete operation...')
       const { data: deleteData, error: deleteError } = await supabase
         .from('interview_experiences')
         .delete()
         .eq('id', experienceId)
         .eq('user_id', user.id)
-        .select() // This will return the deleted rows
+        .select()
 
       if (deleteError) {
         console.error('❌ Supabase delete error:', deleteError)
@@ -208,23 +233,6 @@ async function fetchExperiences() {
       }
 
       console.log('✅ Delete operation result:', deleteData)
-
-      // Verify the record is actually deleted
-      console.log('🔍 Verifying deletion...')
-      const { data: verifyDeletion, error: verifyDelError } = await supabase
-        .from('interview_experiences')
-        .select('id')
-        .eq('id', experienceId)
-        .maybeSingle()
-
-      if (verifyDelError && verifyDelError.code !== 'PGRST116') {
-        console.error('❌ Error verifying deletion:', verifyDelError)
-      } else if (verifyDeletion) {
-        console.warn('⚠️ Record still exists after deletion!', verifyDeletion)
-        throw new Error('Record still exists after deletion attempt')
-      } else {
-        console.log('✅ Deletion verified - record no longer exists')
-      }
 
       // Update local state
       console.log('🔄 Updating local state...')
@@ -253,27 +261,76 @@ async function fetchExperiences() {
     }
   }
 
-  // Add a function to manually check if a record exists (for debugging)
-  async function debugCheckRecord(experienceId: string) {
-    console.log('🔍 Debug: Checking if record exists...')
-    try {
-      const { data, error } = await supabase
-        .from('interview_experiences')
-        .select('*')
-        .eq('id', experienceId)
-        .maybeSingle()
+  // Handle like/unlike functionality
+  async function handleLike(experienceId: string, currentlyLiked: boolean) {
+    if (!userId) {
+      router.push('/login')
+      return
+    }
 
-      if (error) {
-        console.error('Debug error:', error)
+    if (likingExperience === experienceId) return
+
+    try {
+      setLikingExperience(experienceId)
+
+      if (currentlyLiked) {
+        // Unlike
+        const { error } = await supabase
+          .from("likes")
+          .delete()
+          .eq("experience_id", experienceId)
+          .eq("user_id", userId)
+
+        if (error) {
+          console.error("Error unliking:", error)
+          return
+        }
+
+        // Update local state
+        setExperiences(prev => 
+          prev.map(exp => 
+            exp.id === experienceId 
+              ? { 
+                  ...exp, 
+                  likes_count: (exp.likes_count || 0) - 1, 
+                  user_has_liked: false 
+                }
+              : exp
+          )
+        )
       } else {
-        console.log('Debug result:', data ? 'Record EXISTS' : 'Record NOT FOUND', data)
+        // Like
+        const { error } = await supabase
+          .from("likes")
+          .insert({
+            experience_id: experienceId,
+            user_id: userId
+          })
+
+        if (error) {
+          console.error("Error liking:", error)
+          return
+        }
+
+        // Update local state
+        setExperiences(prev => 
+          prev.map(exp => 
+            exp.id === experienceId 
+              ? { 
+                  ...exp, 
+                  likes_count: (exp.likes_count || 0) + 1, 
+                  user_has_liked: true 
+                }
+              : exp
+          )
+        )
       }
     } catch (err) {
-      console.error('Debug exception:', err)
+      console.error("Error handling like:", err)
+    } finally {
+      setLikingExperience(null)
     }
   }
-
-  // Also add a refresh function to force reload from database
 
   async function handleLogout() {
     try {
@@ -448,14 +505,14 @@ async function fetchExperiences() {
                 </div>
 
                 {/* Content Preview - Clickable for details */}
-                <Link href={`/experience/${exp.id}`} className="block">
+                <Link href={`/experience/${exp.id}`} className="block mb-4">
                   <h2 className="text-xl font-bold text-purple-200 hover:text-purple-100 transition-colors">
                     {exp.heading || 'Untitled Experience'}
                   </h2>
                 </Link>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-3 mt-4 text-sm">
+                <div className="flex flex-wrap gap-3 mb-4 text-sm">
                   {exp.position && (
                     <span className="px-3 py-1 bg-slate-700 text-gray-200 rounded-lg">
                        {exp.position}
@@ -473,6 +530,47 @@ async function fetchExperiences() {
                   >
                     {exp.selected ? " Selected" : " Not Selected"}
                   </span>
+                </div>
+
+                {/* Like Button and Count */}
+                <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
+                  <button
+                    onClick={() => handleLike(exp.id, exp.user_has_liked || false)}
+                    disabled={likingExperience === exp.id}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
+                      exp.user_has_liked 
+                        ? "bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400" 
+                        : "bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/50 text-gray-400 hover:text-red-400"
+                    } ${likingExperience === exp.id ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                  >
+                    {likingExperience === exp.id ? (
+                      <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></div>
+                    ) : (
+                      <svg 
+                        className={`w-4 h-4 transition-transform duration-200 ${exp.user_has_liked ? "scale-110" : "hover:scale-110"}`} 
+                        fill={exp.user_has_liked ? "currentColor" : "none"} 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                        />
+                      </svg>
+                    )}
+                    <span className="text-sm font-medium">
+                      {exp.likes_count || 0} {(exp.likes_count || 0) === 1 ? "Like" : "Likes"}
+                    </span>
+                  </button>
+
+                  <Link 
+                    href={`/experience/${exp.id}`}
+                    className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                  >
+                    Read Full Experience →
+                  </Link>
                 </div>
               </div>
             ))}
