@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../../lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -32,25 +32,12 @@ export default function UserProfilePage() {
   const [experiences, setExperiences] = useState<InterviewExperience[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  
-  useEffect(() => {
-    if (!userId) {
-      setError("Invalid user ID")
-      setLoading(false)
-      return
-    }
 
-    getCurrentUser()
-    getUserProfile()
-  }, [userId])
-
-  const getCurrentUser = async () => {
+  // wrapped in useCallback so we can safely add to deps
+  const getCurrentUser = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
-        setCurrentUserId(session.user.id)
-        
         // If viewing own profile, redirect to /profile
         if (session.user.id === userId) {
           router.push('/profile')
@@ -60,9 +47,9 @@ export default function UserProfilePage() {
     } catch (err) {
       console.error("Error getting current user:", err)
     }
-  }
+  }, [router, userId])
 
-  const getUserProfile = async () => {
+  const getUserProfile = useCallback(async () => {
     try {
       setError(null)
       
@@ -102,7 +89,18 @@ export default function UserProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) {
+      setError("Invalid user ID")
+      setLoading(false)
+      return
+    }
+
+    getCurrentUser()
+    getUserProfile()
+  }, [userId, getCurrentUser, getUserProfile])
 
   if (loading) {
     return (
@@ -159,8 +157,9 @@ export default function UserProfilePage() {
               MNEMOSYNE
             </h1>
           </Link>
-          <h2 className="text-xl text-purple-200 mb-2">{profile.name || 'User'}'s Profile</h2>
-          {/* <p className="text-gray-400 text-sm">Viewing in read-only mode</p> */}
+          <h2 className="text-xl text-purple-200 mb-2">
+            {profile.name || 'User'}&apos;s Profile
+          </h2>
         </div>
 
         {/* Profile Card */}
@@ -221,7 +220,7 @@ export default function UserProfilePage() {
         <div className="mt-12">
           <div className="mb-6">
             <h2 className="text-2xl font-semibold text-purple-200">
-              {profile.name || 'User'}'s Interview Experiences
+              {profile.name || 'User'}&apos;s Interview Experiences
             </h2>
             <p className="text-gray-400 text-sm mt-1">
               {experiences.length} experience{experiences.length !== 1 ? 's' : ''} shared
@@ -232,7 +231,7 @@ export default function UserProfilePage() {
             <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-8 text-center">
               <div className="text-gray-400 text-6xl mb-4">📝</div>
               <h3 className="text-xl font-semibold text-gray-300 mb-2">No experiences shared yet</h3>
-              <p className="text-gray-400">This user hasn't shared any interview experiences.</p>
+              <p className="text-gray-400">This user hasn&apos;t shared any interview experiences.</p>
             </div>
           ) : (
             <div className="space-y-4">
