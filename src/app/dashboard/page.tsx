@@ -103,7 +103,14 @@ export default function Dashboard() {
       const { data, error } = await supabase
         .from("interview_experiences")
         .select(`
-          *,
+          id,
+          heading,
+          content,
+          position,
+          mode,
+          selected,
+          created_at,
+          user_id,
           profiles!user_id (
             id,
             name,
@@ -113,13 +120,13 @@ export default function Dashboard() {
           )
         `)
         .order("created_at", { ascending: false })
-
+  
       if (error) {
         console.error("Supabase query error:", error)
         setError(`Failed to fetch experiences: ${error.message}`)
         return
       }
-
+  
       console.log("Raw data from Supabase:", data)
       
       if (!data) {
@@ -127,24 +134,22 @@ export default function Dashboard() {
         setExperiences([])
         return
       }
-
+  
       // Fetch likes data for each experience
       const experiencesWithLikes = await Promise.all(
         data.map(async (exp) => {
-          // Get likes count
           const { count } = await supabase
             .from("likes")
             .select("*", { count: 'exact', head: true })
             .eq("experience_id", exp.id)
-
-          // Check if current user has liked this experience
+  
           const { data: userLike } = await supabase
             .from("likes")
             .select("id")
             .eq("experience_id", exp.id)
             .eq("user_id", currentUserId)
-            .single()
-
+            .maybeSingle()
+  
           return {
             ...exp,
             likes_count: count || 0,
@@ -152,16 +157,17 @@ export default function Dashboard() {
           }
         })
       )
-
-      setExperiences(experiencesWithLikes as Experience[])
+  
+      setExperiences(experiencesWithLikes as unknown as Experience[])
       
     } catch (err) {
       console.error("Error fetching experiences:", err)
-      setError("Failed to load experiences")
+      setError("Failed to load experiences")  
     } finally {
       setLoading(false)
     }
   }
+  
 
   // Enhanced delete function with detailed debugging
   async function deleteExperience(experienceId: string, experienceUserId: string) {
