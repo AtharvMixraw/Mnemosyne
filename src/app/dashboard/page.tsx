@@ -1,4 +1,4 @@
-// app/dashboard/page.tsx - Updated with likes functionality
+// app/dashboard/page.tsx
 
 'use client'
 
@@ -23,8 +23,6 @@ interface Experience {
     about: string
     linkedin: string
   }
-  likes_count?: number
-  user_has_liked?: boolean
 }
 
 interface Profile {
@@ -37,27 +35,26 @@ export default function Dashboard() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [experiences, setExperiences] = useState<Experience[]>([])
+
+  const [allExperiences, setAllExperiences] = useState<Experience[]>([]) // store all
+  const [experiences, setExperiences] = useState<Experience[]>([])       // filtered
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [likingExperience, setLikingExperience] = useState<string | null>(null)
   const [message, setMessage] = useState('')
+  const [search, setSearch] = useState("")   // ✅ search state
   const router = useRouter()
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-        
         if (sessionError) {
-          console.error("Session error:", sessionError)
           router.push("/login")
           return
         }
 
         const session = sessionData?.session
-
         if (!session) {
           router.push("/login")
           return
@@ -65,9 +62,9 @@ export default function Dashboard() {
 
         setUserEmail(session.user.email ?? null)
         setUserId(session.user.id)
-        await Promise.all([fetchExperiences(session.user.id), fetchProfile(session.user.id)])
+
+        await Promise.all([fetchExperiences(), fetchProfile(session.user.id)])
       } catch (err) {
-        console.error("Auth check failed:", err)
         router.push("/login")
       }
     }
@@ -75,6 +72,7 @@ export default function Dashboard() {
     checkAuth()
   }, [router])
 
+  // ✅ Fetch profile
   async function fetchProfile(userId: string) {
     try {
       const { data, error } = await supabase
@@ -83,12 +81,7 @@ export default function Dashboard() {
         .eq("id", userId)
         .single()
 
-      if (error && error.code !== 'PGRST116') {
-        console.error("Profile fetch error:", error)
-        return
-      }
-
-      if (data) {
+      if (!error && data) {
         setProfile(data)
       }
     } catch (err) {
@@ -96,21 +89,16 @@ export default function Dashboard() {
     }
   }
 
-  async function fetchExperiences(currentUserId: string) {
+  // ✅ Fetch all experiences (no search filter here)
+  async function fetchExperiences() {
     try {
       setError(null)
-      
+      setLoading(true)
+
       const { data, error } = await supabase
         .from("interview_experiences")
         .select(`
-          id,
-          heading,
-          content,
-          position,
-          mode,
-          selected,
-          created_at,
-          user_id,
+          *,
           profiles!user_id (
             id,
             name,
@@ -120,221 +108,89 @@ export default function Dashboard() {
           )
         `)
         .order("created_at", { ascending: false })
-  
+
       if (error) {
-        console.error("Supabase query error:", error)
         setError(`Failed to fetch experiences: ${error.message}`)
         return
       }
-  
-      console.log("Raw data from Supabase:", data)
-      
-      if (!data) {
-        console.log("No data returned from query")
-        setExperiences([])
-        return
-      }
-  
-      // Fetch likes data for each experience
-      const experiencesWithLikes = await Promise.all(
-        data.map(async (exp) => {
-          const { count } = await supabase
-            .from("likes")
-            .select("*", { count: 'exact', head: true })
-            .eq("experience_id", exp.id)
-  
-          const { data: userLike } = await supabase
-            .from("likes")
-            .select("id")
-            .eq("experience_id", exp.id)
-            .eq("user_id", currentUserId)
-            .maybeSingle()
-  
-          return {
-            ...exp,
-            likes_count: count || 0,
-            user_has_liked: !!userLike
-          }
-        })
-      )
-  
-      setExperiences(experiencesWithLikes as unknown as Experience[])
-      
+
+      setAllExperiences(data as Experience[] || [])
+      setExperiences(data as Experience[] || [])
     } catch (err) {
-      console.error("Error fetching experiences:", err)
-      setError("Failed to load experiences")  
+      setError("Failed to load experiences")
     } finally {
       setLoading(false)
     }
   }
-  
 
-  // Enhanced delete function with detailed debugging
+  // ✅ Handle search locally (UI-only)
+  const handleSearch = (value: string) => {
+    setSearch(value)
+
+    if (!value.trim()) {
+      setExperiences(allExperiences)
+      return
+    }
+
+    const lower = value.toLowerCase()
+    const filtered = allExperiences.filter(exp =>
+      exp.heading?.toLowerCase().includes(lower) ||
+      exp.content?.toLowerCase().includes(lower) ||
+      exp.position?.toLowerCase().includes(lower) ||
+      exp.mode?.toLowerCase().includes(lower) ||
+      exp.profiles?.name?.toLowerCase().includes(lower)
+    )
+    setExperiences(filtered)
+  }
+
+  // Delete experience
   async function deleteExperience(experienceId: string, experienceUserId: string) {
-    console.log('🗑️ Delete attempt started:', { experienceId, experienceUserId, currentUserId: userId })
-    
-    // Check if the experience belongs to the current user
     if (experienceUserId !== userId) {
-      console.log('❌ Permission denied: Experience belongs to different user')
       setMessage('You can only delete your own experiences')
       setTimeout(() => setMessage(''), 3000)
       return
     }
 
     if (!confirm('Are you sure you want to delete this experience? This action cannot be undone.')) {
-      console.log('❌ User cancelled deletion')
       return
     }
 
     try {
       setDeleting(experienceId)
       setMessage('')
-      console.log('🔄 Starting deletion process...')
 
-      // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError) {
-        console.error('❌ Error getting user:', userError)
-        throw userError
-      }
-      if (!user) {
-        console.error('❌ No user found')
-        throw new Error('No user logged in')
-      }
-      console.log('✅ User authenticated:', user.id)
+      if (userError) throw userError
+      if (!user) throw new Error('No user logged in')
 
-      // First, verify the record exists and belongs to the user
-      console.log('🔍 Verifying record exists...')
       const { data: existingRecord, error: verifyError } = await supabase
         .from('interview_experiences')
-        .select('id, user_id, heading')
+        .select('id, user_id')
         .eq('id', experienceId)
         .eq('user_id', user.id)
         .maybeSingle()
 
-      if (verifyError) {
-        console.error('❌ Error verifying record:', verifyError)
-        throw new Error(`Verification failed: ${verifyError.message}`)
-      }
+      if (verifyError) throw new Error(`Verification failed: ${verifyError.message}`)
+      if (!existingRecord) throw new Error('Experience not found or you do not have permission to delete it')
 
-      if (!existingRecord) {
-        console.error('❌ Record not found or permission denied')
-        throw new Error('Experience not found or you do not have permission to delete it')
-      }
-
-      console.log('✅ Record verified:', existingRecord)
-
-      // Perform the delete operation (likes will be automatically deleted due to CASCADE)
-      console.log('🗑️ Executing delete operation...')
-      const { data: deleteData, error: deleteError } = await supabase
+      const { error: deleteError } = await supabase
         .from('interview_experiences')
         .delete()
         .eq('id', experienceId)
         .eq('user_id', user.id)
-        .select()
 
-      if (deleteError) {
-        console.error('❌ Supabase delete error:', deleteError)
-        throw new Error(`Delete failed: ${deleteError.message}`)
-      }
+      if (deleteError) throw new Error(`Delete failed: ${deleteError.message}`)
 
-      console.log('✅ Delete operation result:', deleteData)
-
-      // Update local state
-      console.log('🔄 Updating local state...')
-      setExperiences(prev => {
-        const newExperiences = prev.filter(exp => exp.id !== experienceId)
-        console.log(`📊 Updated experiences count: ${prev.length} → ${newExperiences.length}`)
-        return newExperiences
-      })
-
+      setAllExperiences(prev => prev.filter(exp => exp.id !== experienceId))
+      setExperiences(prev => prev.filter(exp => exp.id !== experienceId))
       setMessage('Experience deleted successfully!')
-      console.log('✅ Deletion completed successfully')
-      
-      // Clear success message after 3 seconds
       setTimeout(() => setMessage(''), 3000)
-
     } catch (error) {
-      console.error('💥 Error in deleteExperience:', error)
       const errorMessage = error instanceof Error ? error.message : 'Error deleting experience'
       setMessage(`Error: ${errorMessage}`)
-      
-      // Clear error message after 5 seconds
       setTimeout(() => setMessage(''), 5000)
     } finally {
       setDeleting(null)
-      console.log('🏁 Delete operation finished')
-    }
-  }
-
-  // Handle like/unlike functionality
-  async function handleLike(experienceId: string, currentlyLiked: boolean) {
-    if (!userId) {
-      router.push('/login')
-      return
-    }
-
-    if (likingExperience === experienceId) return
-
-    try {
-      setLikingExperience(experienceId)
-
-      if (currentlyLiked) {
-        // Unlike
-        const { error } = await supabase
-          .from("likes")
-          .delete()
-          .eq("experience_id", experienceId)
-          .eq("user_id", userId)
-
-        if (error) {
-          console.error("Error unliking:", error)
-          return
-        }
-
-        // Update local state
-        setExperiences(prev => 
-          prev.map(exp => 
-            exp.id === experienceId 
-              ? { 
-                  ...exp, 
-                  likes_count: (exp.likes_count || 0) - 1, 
-                  user_has_liked: false 
-                }
-              : exp
-          )
-        )
-      } else {
-        // Like
-        const { error } = await supabase
-          .from("likes")
-          .insert({
-            experience_id: experienceId,
-            user_id: userId
-          })
-
-        if (error) {
-          console.error("Error liking:", error)
-          return
-        }
-
-        // Update local state
-        setExperiences(prev => 
-          prev.map(exp => 
-            exp.id === experienceId 
-              ? { 
-                  ...exp, 
-                  likes_count: (exp.likes_count || 0) + 1, 
-                  user_has_liked: true 
-                }
-              : exp
-          )
-        )
-      }
-    } catch (err) {
-      console.error("Error handling like:", err)
-    } finally {
-      setLikingExperience(null)
     }
   }
 
@@ -347,6 +203,7 @@ export default function Dashboard() {
     }
   }
 
+  // ✅ Loading State
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -359,6 +216,7 @@ export default function Dashboard() {
     )
   }
 
+  // ✅ Error State
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -375,6 +233,7 @@ export default function Dashboard() {
     )
   }
 
+  // ✅ Main UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
       <div className="max-w-3xl mx-auto">
@@ -404,7 +263,7 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          {/* Title and Actions - Centered */}
+          {/* Title + Actions */}
           <div className="text-center">
             <h1 className="text-3xl font-bold text-white mb-6">Interview Experiences</h1>
             <div className="flex justify-center gap-4">
@@ -424,6 +283,17 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ✅ Search Bar */}
+        <div className="mb-6">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Search by role, heading, content, or author..."
+            className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+
         {/* Message Display */}
         {message && (
           <div className={`rounded-lg p-3 border mb-6 ${
@@ -437,14 +307,13 @@ export default function Dashboard() {
 
         {/* Debug Info */}
         <div className="mb-4 text-center text-gray-400 text-sm">
-          Found {experiences.length} experiences from all users
+          Found {experiences.length} experiences {search ? `for "${search}"` : "from all users"}
         </div>
 
         {/* Experiences Feed */}
         {experiences.length === 0 ? (
           <div className="text-center">
-            <p className="text-gray-400 mb-4">No experiences shared yet.</p>
-            <p className="text-gray-500 text-sm">Be the first to share your interview experience!</p>
+            <p className="text-gray-400 mb-4">No experiences found.</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -453,7 +322,7 @@ export default function Dashboard() {
                 key={exp.id}
                 className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-6 shadow-lg hover:bg-slate-700/60 transition relative"
               >
-                {/* Delete Button - Only show for user's own experiences */}
+                {/* Delete Button */}
                 {exp.user_id === userId && (
                   <button
                     onClick={() => deleteExperience(exp.id, exp.user_id)}
@@ -471,7 +340,7 @@ export default function Dashboard() {
                   </button>
                 )}
 
-                {/* Author Info - Now Clickable */}
+                {/* Author Info */}
                 <div 
                   className="flex items-center gap-3 mb-4 cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 -m-2 transition-colors"
                   onClick={() => {
@@ -484,7 +353,6 @@ export default function Dashboard() {
                 >
                   <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 font-bold">
                     {exp.user_id === userId ? (
-                      // Show user's own profile picture/initial
                       profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt="You" className="w-full h-full object-cover" />
                       ) : (
@@ -492,7 +360,6 @@ export default function Dashboard() {
                         userEmail ? userEmail.charAt(0).toUpperCase() : "U"
                       )
                     ) : (
-                      // Show other user's profile picture/initial
                       exp.profiles?.avatar_url ? (
                         <img src={exp.profiles.avatar_url} alt={exp.profiles.name || "User"} className="w-full h-full object-cover" />
                       ) : (
@@ -510,15 +377,15 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Content Preview - Clickable for details */}
-                <Link href={`/experience/${exp.id}`} className="block mb-4">
+                {/* Content Preview */}
+                <Link href={`/experience/${exp.id}`} className="block">
                   <h2 className="text-xl font-bold text-purple-200 hover:text-purple-100 transition-colors">
                     {exp.heading || 'Untitled Experience'}
                   </h2>
                 </Link>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-3 mb-4 text-sm">
+                <div className="flex flex-wrap gap-3 mt-4 text-sm">
                   {exp.position && (
                     <span className="px-3 py-1 bg-slate-700 text-gray-200 rounded-lg">
                        {exp.position}
@@ -536,47 +403,6 @@ export default function Dashboard() {
                   >
                     {exp.selected ? " Selected" : " Not Selected"}
                   </span>
-                </div>
-
-                {/* Like Button and Count */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
-                  <button
-                    onClick={() => handleLike(exp.id, exp.user_has_liked || false)}
-                    disabled={likingExperience === exp.id}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
-                      exp.user_has_liked 
-                        ? "bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400" 
-                        : "bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/50 text-gray-400 hover:text-red-400"
-                    } ${likingExperience === exp.id ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                  >
-                    {likingExperience === exp.id ? (
-                      <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></div>
-                    ) : (
-                      <svg 
-                        className={`w-4 h-4 transition-transform duration-200 ${exp.user_has_liked ? "scale-110" : "hover:scale-110"}`} 
-                        fill={exp.user_has_liked ? "currentColor" : "none"} 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
-                        />
-                      </svg>
-                    )}
-                    <span className="text-sm font-medium">
-                      {exp.likes_count || 0} {(exp.likes_count || 0) === 1 ? "Like" : "Likes"}
-                    </span>
-                  </button>
-
-                  <Link 
-                    href={`/experience/${exp.id}`}
-                    className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
-                  >
-                    Read Full Experience →
-                  </Link>
                 </div>
               </div>
             ))}
