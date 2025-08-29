@@ -206,11 +206,11 @@ export default function Dashboard() {
   // ✅ Loading State
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="text-center max-w-sm w-full">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading dashboard...</p>
-          <p className="text-sm text-gray-500 mt-2">User: {userEmail}</p>
+          <p className="text-sm text-gray-500 mt-2 break-all">User: {userEmail}</p>
         </div>
       </div>
     )
@@ -219,12 +219,12 @@ export default function Dashboard() {
   // ✅ Error State
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="text-center max-w-sm w-full">
+          <p className="text-red-600 mb-4 text-sm">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full sm:w-auto"
           >
             Retry
           </button>
@@ -233,101 +233,163 @@ export default function Dashboard() {
     )
   }
 
-  // ✅ Main UI
+  // ✅ Main UI - Mobile Optimized
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 sm:p-6">
       <div className="max-w-3xl mx-auto">
         
-        {/* Header */}
-        <div className="relative mb-10">
-          {/* Profile Picture - Top Right */}
-          <div className="absolute top-0 right-0">
-            <Link href="/profile" className="block">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 border-2 border-purple-400/30 hover:border-purple-400 transition-colors cursor-pointer group">
-                {profile?.avatar_url ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-purple-200 font-bold bg-gradient-to-br from-purple-500 to-blue-500">
-                    {profile?.name 
-                      ? profile.name.charAt(0).toUpperCase() 
-                      : userEmail 
-                        ? userEmail.charAt(0).toUpperCase() 
-                        : "U"}
-                  </div>
-                )}
+        {/* Header - Mobile Optimized */}
+        <div className="mb-8 sm:mb-10">
+          {/* Mobile Layout - Stack vertically */}
+          <div className="sm:hidden">
+            {/* Profile Picture - Top Center on Mobile */}
+            <div className="flex justify-center mb-4">
+              <Link href="/profile" className="block">
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 border-2 border-purple-400/30 hover:border-purple-400 transition-colors cursor-pointer group">
+                  {profile?.avatar_url ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-purple-200 font-bold bg-gradient-to-br from-purple-500 to-blue-500 text-lg">
+                      {profile?.name 
+                        ? profile.name.charAt(0).toUpperCase() 
+                        : userEmail 
+                          ? userEmail.charAt(0).toUpperCase() 
+                          : "U"}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </div>
+
+            {/* Title */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-4">Interview Experiences</h1>
+              
+              {/* Action Buttons - Stack on mobile */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-4">
+                <Link
+                  href="/interview"
+                  className="px-5 py-3 bg-black hover:bg-gray-700 text-white rounded-lg shadow text-center transition-colors"
+                >
+                  Add Experience
+                </Link>
+                {/* <Link
+                  href="/rewards"
+                  className="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow text-center transition-colors"
+                >
+                  View Rewards
+                </Link> */}
+                <button
+                  onClick={handleLogout}
+                  className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow transition-colors"
+                >
+                  Logout
+                </button>
               </div>
-            </Link>
+            </div>
           </div>
 
-          {/* Title + Actions */}
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-white mb-6">Interview Experiences</h1>
-            <div className="flex justify-center gap-4">
-              <Link
-                href="/interview"
-                className="px-5 py-2 bg-black hover:bg-gray-700 text-white rounded-lg shadow"
-              >
-                Add Experience
+          {/* Desktop Layout - Original positioning */}
+          <div className="hidden sm:block relative">
+            {/* Profile Picture - Top Right on Desktop */}
+            <div className="absolute top-0 right-0">
+              <Link href="/profile" className="block">
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 border-2 border-purple-400/30 hover:border-purple-400 transition-colors cursor-pointer group">
+                  {profile?.avatar_url ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-purple-200 font-bold bg-gradient-to-br from-purple-500 to-blue-500">
+                      {profile?.name 
+                        ? profile.name.charAt(0).toUpperCase() 
+                        : userEmail 
+                          ? userEmail.charAt(0).toUpperCase() 
+                          : "U"}
+                    </div>
+                  )}
+                </div>
               </Link>
-              <button
-                onClick={handleLogout}
-                className="px-5 py-2 bg-black hover:bg-gray-700 text-white rounded-lg shadow"
-              >
-                Logout
-              </button>
+            </div>
+
+            {/* Title + Actions */}
+            <div className="text-center pr-16">
+              <h1 className="text-3xl font-bold text-white mb-6">Interview Experiences</h1>
+              <div className="flex justify-center gap-4 flex-wrap">
+                <Link
+                  href="/interview"
+                  className="px-5 py-2 bg-black hover:bg-gray-700 text-white rounded-lg shadow"
+                >
+                  Add Experience
+                </Link>
+                {/* <Link
+                  href="/rewards"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow"
+                >
+                  View Rewards
+                </Link> */}
+                <button
+                  onClick={handleLogout}
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ✅ Search Bar */}
+        {/* ✅ Search Bar - Mobile Optimized */}
         <div className="mb-6">
           <input
             type="text"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search by role, heading, content, or author..."
-            className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-4 py-3 sm:py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
           />
         </div>
 
-        {/* Message Display */}
+        {/* Message Display - Mobile Optimized */}
         {message && (
           <div className={`rounded-lg p-3 border mb-6 ${
             message.includes('successfully') 
               ? 'bg-green-900/20 border-green-500/50 text-green-200' 
               : 'bg-red-900/20 border-red-500/50 text-red-200'
           }`}>
-            <p className="text-sm text-center">{message}</p>
+            <p className="text-sm text-center break-words">{message}</p>
           </div>
         )}
 
-        {/* Debug Info */}
-        <div className="mb-4 text-center text-gray-400 text-sm">
+        {/* Debug Info - Mobile Optimized */}
+        <div className="mb-4 text-center text-gray-400 text-xs sm:text-sm px-2">
           Found {experiences.length} experiences {search ? `for "${search}"` : "from all users"}
         </div>
 
-        {/* Experiences Feed */}
+        {/* Experiences Feed - Mobile Optimized */}
         {experiences.length === 0 ? (
-          <div className="text-center">
+          <div className="text-center py-8">
             <p className="text-gray-400 mb-4">No experiences found.</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {experiences.map((exp) => (
               <div
                 key={exp.id}
-                className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-6 shadow-lg hover:bg-slate-700/60 transition relative"
+                className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 sm:p-6 shadow-lg hover:bg-slate-700/60 transition relative"
               >
-                {/* Delete Button */}
+                {/* Delete Button - Mobile Optimized */}
                 {exp.user_id === userId && (
                   <button
                     onClick={() => deleteExperience(exp.id, exp.user_id)}
                     disabled={deleting === exp.id}
-                    className="absolute top-4 right-4 p-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 hover:border-red-500/60 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 hover:border-red-500/60 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
                     title="Delete your experience"
                   >
                     {deleting === exp.id ? (
@@ -340,9 +402,9 @@ export default function Dashboard() {
                   </button>
                 )}
 
-                {/* Author Info */}
+                {/* Author Info - Mobile Optimized */}
                 <div 
-                  className="flex items-center gap-3 mb-4 cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 -m-2 transition-colors"
+                  className="flex items-center gap-3 mb-4 cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 -m-2 transition-colors pr-12 sm:pr-2"
                   onClick={() => {
                     if (exp.user_id === userId) {
                       router.push('/profile')
@@ -351,57 +413,61 @@ export default function Dashboard() {
                     }
                   }}
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 font-bold">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 font-bold flex-shrink-0">
                     {exp.user_id === userId ? (
                       profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt="You" className="w-full h-full object-cover" />
                       ) : (
-                        profile?.name ? profile.name.charAt(0).toUpperCase() : 
-                        userEmail ? userEmail.charAt(0).toUpperCase() : "U"
+                        <span className="text-sm sm:text-base">
+                          {profile?.name ? profile.name.charAt(0).toUpperCase() : 
+                          userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
+                        </span>
                       )
                     ) : (
                       exp.profiles?.avatar_url ? (
                         <img src={exp.profiles.avatar_url} alt={exp.profiles.name || "User"} className="w-full h-full object-cover" />
                       ) : (
-                        exp.profiles?.name ? exp.profiles.name.charAt(0).toUpperCase() : "U"
+                        <span className="text-sm sm:text-base">
+                          {exp.profiles?.name ? exp.profiles.name.charAt(0).toUpperCase() : "U"}
+                        </span>
                       )
                     )}
                   </div>
-                  <div>
-                    <p className="text-white font-semibold hover:text-purple-200 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white font-semibold hover:text-purple-200 transition-colors text-sm sm:text-base truncate">
                       {exp.user_id === userId ? "You" : (exp.profiles?.name || "Unknown User")}
                     </p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-400 text-xs sm:text-sm">
                       {new Date(exp.created_at).toLocaleString()}
                     </p>
                   </div>
                 </div>
 
-                {/* Content Preview */}
-                <Link href={`/experience/${exp.id}`} className="block">
-                  <h2 className="text-xl font-bold text-purple-200 hover:text-purple-100 transition-colors">
+                {/* Content Preview - Mobile Optimized */}
+                <Link href={`/experience/${exp.id}`} className="block mb-4">
+                  <h2 className="text-lg sm:text-xl font-bold text-purple-200 hover:text-purple-100 transition-colors line-clamp-2 break-words">
                     {exp.heading || 'Untitled Experience'}
                   </h2>
                 </Link>
 
-                {/* Tags */}
-                <div className="flex flex-wrap gap-3 mt-4 text-sm">
+                {/* Tags - Mobile Optimized */}
+                <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm">
                   {exp.position && (
-                    <span className="px-3 py-1 bg-slate-700 text-gray-200 rounded-lg">
-                       {exp.position}
+                    <span className="px-2 py-1 sm:px-3 bg-slate-700 text-gray-200 rounded-lg break-all max-w-full">
+                      📍 {exp.position}
                     </span>
                   )}
                   {exp.mode && (
-                    <span className="px-3 py-1 bg-slate-700 text-gray-200 rounded-lg">
-                       {exp.mode}
+                    <span className="px-2 py-1 sm:px-3 bg-slate-700 text-gray-200 rounded-lg">
+                      💼 {exp.mode}
                     </span>
                   )}
                   <span
-                    className={`px-3 py-1 rounded-lg font-medium ${
+                    className={`px-2 py-1 sm:px-3 rounded-lg font-medium flex-shrink-0 ${
                       exp.selected ? "bg-green-600/80 text-white" : "bg-red-600/80 text-white"
                     }`}
                   >
-                    {exp.selected ? " Selected" : " Not Selected"}
+                    {exp.selected ? "✅ Selected" : "❌ Not Selected"}
                   </span>
                 </div>
               </div>
