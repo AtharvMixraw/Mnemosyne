@@ -467,9 +467,9 @@ export default function ProfilePage() {
                       </button>
                     </div>
                     
-                    <p className="text-gray-300 leading-relaxed mb-4 line-clamp-3 hover:text-gray-200 transition-colors">
+                    {/* <p className="text-gray-300 leading-relaxed mb-4 line-clamp-3 hover:text-gray-200 transition-colors">
                       {exp.content || 'No content provided'}
-                    </p>
+                    </p> */}
                     
                     <p className="text-xs text-gray-500">
                        {new Date(exp.created_at).toLocaleDateString('en-US', {

@@ -454,12 +454,12 @@ export default function Dashboard() {
                 <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm">
                   {exp.position && (
                     <span className="px-2 py-1 sm:px-3 bg-slate-700 text-gray-200 rounded-lg break-all max-w-full">
-                      📍 {exp.position}
+                       {exp.position}
                     </span>
                   )}
                   {exp.mode && (
                     <span className="px-2 py-1 sm:px-3 bg-slate-700 text-gray-200 rounded-lg">
-                      💼 {exp.mode}
+                       {exp.mode}
                     </span>
                   )}
                   <span
@@ -467,7 +467,7 @@ export default function Dashboard() {
                       exp.selected ? "bg-green-600/80 text-white" : "bg-red-600/80 text-white"
                     }`}
                   >
-                    {exp.selected ? "✅ Selected" : "❌ Not Selected"}
+                    {exp.selected ? " Selected" : " Not Selected"}
                   </span>
                 </div>
               </div>
