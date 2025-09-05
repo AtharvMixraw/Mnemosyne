@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Experience {
   id: string;
@@ -25,12 +26,12 @@ interface Experience {
   };
 }
 
-interface Like {
-  id: string;
-  user_id: string;
-  experience_id: string;
-  created_at: string;
-}
+// interface Like {
+//   id: string;
+//   user_id: string;
+//   experience_id: string;
+//   created_at: string;
+// }
 
 // Component to render formatted content safely
 const FormattedContent = ({ content }: { content: string }) => {
@@ -445,7 +446,7 @@ export default function ExperienceDetails() {
             >
               <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 text-xl font-bold">
                 {experience.profiles?.avatar_url ? (
-                  <img 
+                  <Image
                     src={experience.profiles.avatar_url} 
                     alt={experience.profiles.name || "User"} 
                     className="w-full h-full object-cover"

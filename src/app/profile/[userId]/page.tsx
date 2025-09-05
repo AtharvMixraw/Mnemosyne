@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../../lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+
 
 interface Profile {
   id: string
@@ -168,11 +170,13 @@ export default function UserProfilePage() {
           <div className="flex flex-col items-center mb-8">
             <div className="w-24 h-24 rounded-full bg-slate-700 border-4 border-purple-500/30 overflow-hidden mb-4">
               {profile.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
-                  alt={profile.name || 'User'} 
-                  className="w-full h-full object-cover"
-                />
+                <Image 
+                src={profile.avatar_url} 
+                alt={profile.name || 'User'} 
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+              />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-purple-200 text-2xl font-bold">
                   {profile.name ? profile.name.charAt(0).toUpperCase() : profile.email.charAt(0).toUpperCase()}

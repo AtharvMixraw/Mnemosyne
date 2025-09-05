@@ -1,50 +1,51 @@
 // app/dashboard/page.tsx
-
 'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabaseClient"
 import Link from "next/link"
+import { useData } from "../contexts/DataContext"
+import Image from 'next/image'
 
-interface Experience {
-  id: string
-  heading: string
-  content: string
-  position: string
-  mode: string
-  selected: boolean
-  created_at: string
-  user_id: string
-  profiles?: {
-    id: string
-    name: string
-    avatar_url: string
-    about: string
-    linkedin: string
-  }
-}
-
-interface Profile {
-  id: string
-  name: string
-  avatar_url: string
-}
+// interface Experience {
+//   id: string
+//   heading: string
+//   content: string
+//   position: string
+//   mode: string
+//   selected: boolean
+//   created_at: string
+//   user_id: string
+//   profiles?: {
+//     id: string
+//     name: string
+//     avatar_url: string
+//     about: string
+//     linkedin: string
+//   }
+// }
 
 export default function Dashboard() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-
-  const [allExperiences, setAllExperiences] = useState<Experience[]>([]) // store all
-  const [experiences, setExperiences] = useState<Experience[]>([])       // filtered
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [message, setMessage] = useState('')
-  const [search, setSearch] = useState("")   // ✅ search state
+  const [search, setSearch] = useState("")
   const router = useRouter()
 
+  // Use the data context
+  const {
+    profile,
+    experiences,
+    fetchProfile,
+    fetchExperiences,
+    removeExperienceFromCache,
+    experiencesLoading,
+    profileLoading
+  } = useData()
+
+  // Initialize auth and fetch data
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -63,88 +64,40 @@ export default function Dashboard() {
         setUserEmail(session.user.email ?? null)
         setUserId(session.user.id)
 
-        await Promise.all([fetchExperiences(), fetchProfile(session.user.id)])
-      } catch (err) {
+        // Fetch data using context methods (will use cache automatically)
+        await Promise.all([
+          fetchProfile(session.user.id),
+          fetchExperiences()
+        ])
+      } catch (error) {
         router.push("/login")
       }
     }
 
     checkAuth()
-  }, [router])
+  }, [router, fetchProfile, fetchExperiences])
 
-  // ✅ Fetch profile
-  async function fetchProfile(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, name, avatar_url")
-        .eq("id", userId)
-        .single()
+  // Memoized filtered experiences for search
+  const filteredExperiences = useMemo(() => {
+    if (!search.trim()) return experiences
 
-      if (!error && data) {
-        setProfile(data)
-      }
-    } catch (err) {
-      console.error("Error fetching profile:", err)
-    }
-  }
-
-  // ✅ Fetch all experiences (no search filter here)
-  async function fetchExperiences() {
-    try {
-      setError(null)
-      setLoading(true)
-
-      const { data, error } = await supabase
-        .from("interview_experiences")
-        .select(`
-          *,
-          profiles!user_id (
-            id,
-            name,
-            avatar_url,
-            about,
-            linkedin
-          )
-        `)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        setError(`Failed to fetch experiences: ${error.message}`)
-        return
-      }
-
-      setAllExperiences(data as Experience[] || [])
-      setExperiences(data as Experience[] || [])
-    } catch (err) {
-      setError("Failed to load experiences")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ✅ Handle search locally (UI-only)
-  const handleSearch = (value: string) => {
-    setSearch(value)
-
-    if (!value.trim()) {
-      setExperiences(allExperiences)
-      return
-    }
-
-    const lower = value.toLowerCase()
-    const filtered = allExperiences.filter(exp =>
+    const lower = search.toLowerCase()
+    return experiences.filter(exp =>
       exp.heading?.toLowerCase().includes(lower) ||
       exp.content?.toLowerCase().includes(lower) ||
       exp.position?.toLowerCase().includes(lower) ||
       exp.mode?.toLowerCase().includes(lower) ||
       exp.profiles?.name?.toLowerCase().includes(lower)
     )
-    setExperiences(filtered)
-  }
+  }, [experiences, search])
 
-  // Delete experience
-  async function deleteExperience(experienceId: string, experienceUserId: string) {
+  // Debounced search handler
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+  }, [])
+
+  // Delete experience with optimistic updates
+  const deleteExperience = useCallback(async (experienceId: string, experienceUserId: string) => {
     if (experienceUserId !== userId) {
       setMessage('You can only delete your own experiences')
       setTimeout(() => setMessage(''), 3000)
@@ -163,15 +116,8 @@ export default function Dashboard() {
       if (userError) throw userError
       if (!user) throw new Error('No user logged in')
 
-      const { data: existingRecord, error: verifyError } = await supabase
-        .from('interview_experiences')
-        .select('id, user_id')
-        .eq('id', experienceId)
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (verifyError) throw new Error(`Verification failed: ${verifyError.message}`)
-      if (!existingRecord) throw new Error('Experience not found or you do not have permission to delete it')
+      // Optimistically remove from UI
+      removeExperienceFromCache(experienceId)
 
       const { error: deleteError } = await supabase
         .from('interview_experiences')
@@ -179,10 +125,12 @@ export default function Dashboard() {
         .eq('id', experienceId)
         .eq('user_id', user.id)
 
-      if (deleteError) throw new Error(`Delete failed: ${deleteError.message}`)
+      if (deleteError) {
+        // Revert optimistic update on error by refetching
+        await fetchExperiences(true)
+        throw new Error(`Delete failed: ${deleteError.message}`)
+      }
 
-      setAllExperiences(prev => prev.filter(exp => exp.id !== experienceId))
-      setExperiences(prev => prev.filter(exp => exp.id !== experienceId))
       setMessage('Experience deleted successfully!')
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
@@ -192,19 +140,21 @@ export default function Dashboard() {
     } finally {
       setDeleting(null)
     }
-  }
+  }, [userId, removeExperienceFromCache, fetchExperiences])
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     try {
       await supabase.auth.signOut()
       router.push("/")
     } catch (err) {
       console.error("Logout error:", err)
     }
-  }
+  }, [router])
 
-  // ✅ Loading State
-  if (loading) {
+  // Show loading only if we have no cached data
+  const showLoading = (experiencesLoading || profileLoading) && experiences.length === 0 && !profile
+
+  if (showLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
         <div className="text-center max-w-sm w-full">
@@ -216,24 +166,6 @@ export default function Dashboard() {
     )
   }
 
-  // ✅ Error State
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-        <div className="text-center max-w-sm w-full">
-          <p className="text-red-600 mb-4 text-sm">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full sm:w-auto"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ✅ Main UI - Mobile Optimized
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 sm:p-6">
       <div className="max-w-3xl mx-auto">
@@ -247,9 +179,11 @@ export default function Dashboard() {
               <Link href="/profile" className="block">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 border-2 border-purple-400/30 hover:border-purple-400 transition-colors cursor-pointer group">
                   {profile?.avatar_url ? (
-                    <img 
+                    <Image
                       src={profile.avatar_url} 
                       alt="Profile" 
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     />
                   ) : (
@@ -277,12 +211,6 @@ export default function Dashboard() {
                 >
                   Add Experience
                 </Link>
-                {/* <Link
-                  href="/rewards"
-                  className="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow text-center transition-colors"
-                >
-                  View Rewards
-                </Link> */}
                 <button
                   onClick={handleLogout}
                   className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow transition-colors"
@@ -300,9 +228,11 @@ export default function Dashboard() {
               <Link href="/profile" className="block">
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 border-2 border-purple-400/30 hover:border-purple-400 transition-colors cursor-pointer group">
                   {profile?.avatar_url ? (
-                    <img 
+                    <Image
                       src={profile.avatar_url} 
                       alt="Profile" 
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     />
                   ) : (
@@ -328,12 +258,6 @@ export default function Dashboard() {
                 >
                   Add Experience
                 </Link>
-                {/* <Link
-                  href="/rewards"
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow"
-                >
-                  View Rewards
-                </Link> */}
                 <button
                   onClick={handleLogout}
                   className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow"
@@ -345,7 +269,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ✅ Search Bar - Mobile Optimized */}
+        {/* Search Bar - Mobile Optimized */}
         <div className="mb-6">
           <input
             type="text"
@@ -355,6 +279,16 @@ export default function Dashboard() {
             className="w-full px-4 py-3 sm:py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
           />
         </div>
+
+        {/* Loading indicator for background updates */}
+        {experiencesLoading && experiences.length > 0 && (
+          <div className="mb-4 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg text-sm">
+              <div className="animate-spin w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+              Refreshing experiences...
+            </div>
+          </div>
+        )}
 
         {/* Message Display - Mobile Optimized */}
         {message && (
@@ -369,17 +303,27 @@ export default function Dashboard() {
 
         {/* Debug Info - Mobile Optimized */}
         <div className="mb-4 text-center text-gray-400 text-xs sm:text-sm px-2">
-          Found {experiences.length} experiences {search ? `for "${search}"` : "from all users"}
+          Found {filteredExperiences.length} experiences {search ? `for "${search}"` : "from all users"}
         </div>
 
         {/* Experiences Feed - Mobile Optimized */}
-        {experiences.length === 0 ? (
+        {filteredExperiences.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-400 mb-4">No experiences found.</p>
+            <p className="text-gray-400 mb-4">
+              {search ? `No experiences found for "${search}"` : "No experiences found."}
+            </p>
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="text-purple-400 hover:text-purple-300 text-sm underline"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-4 sm:space-y-6">
-            {experiences.map((exp) => (
+            {filteredExperiences.map((exp) => (
               <div
                 key={exp.id}
                 className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 sm:p-6 shadow-lg hover:bg-slate-700/60 transition relative"
@@ -416,7 +360,8 @@ export default function Dashboard() {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 font-bold flex-shrink-0">
                     {exp.user_id === userId ? (
                       profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt="You" className="w-full h-full object-cover" />
+                        <Image src={profile.avatar_url} alt="You" width={64}
+                        height={64} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-sm sm:text-base">
                           {profile?.name ? profile.name.charAt(0).toUpperCase() : 
@@ -425,7 +370,8 @@ export default function Dashboard() {
                       )
                     ) : (
                       exp.profiles?.avatar_url ? (
-                        <img src={exp.profiles.avatar_url} alt={exp.profiles.name || "User"} className="w-full h-full object-cover" />
+                        <Image src={exp.profiles.avatar_url} alt={exp.profiles.name || "User"} width={64}
+                        height={64} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-sm sm:text-base">
                           {exp.profiles?.name ? exp.profiles.name.charAt(0).toUpperCase() : "U"}

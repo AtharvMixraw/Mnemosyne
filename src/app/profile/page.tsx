@@ -1,9 +1,23 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+
+// Cache for storing data across component renders
+const cache = {
+  profile: null as Profile | null,
+  experiences: null as InterviewExperience[] | null,
+  lastFetch: {
+    profile: 0,
+    experiences: 0
+  }
+}
+
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const STALE_WHILE_REVALIDATE = 30 * 1000 // 30 seconds
 
 interface Profile {
   id: string
@@ -44,6 +58,15 @@ export default function ProfilePage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   
+  // Memoized cache check function
+  const isCacheValid = useCallback((key: 'profile' | 'experiences') => {
+    return Date.now() - cache.lastFetch[key] < CACHE_DURATION
+  }, [])
+
+  const isCacheStale = useCallback((key: 'profile' | 'experiences') => {
+    return Date.now() - cache.lastFetch[key] > STALE_WHILE_REVALIDATE
+  }, [])
+
   useEffect(() => {
     getProfile()
   }, [])
@@ -63,16 +86,51 @@ export default function ProfilePage() {
         router.push("/login")
         return
       }
-  
+
+      // Check cache first for immediate UI update
+      if (cache.profile && isCacheValid('profile')) {
+        setProfile(cache.profile)
+        setLoading(false)
+      }
+      
+      if (cache.experiences && isCacheValid('experiences')) {
+        setExperiences(cache.experiences)
+        setLoading(false)
+      }
+
+      // If cache is stale or invalid, fetch fresh data
+      const shouldFetchProfile = !cache.profile || isCacheStale('profile')
+      const shouldFetchExperiences = !cache.experiences || isCacheStale('experiences')
+
+      if (shouldFetchProfile) {
+        await fetchProfileData(user)
+      }
+
+      if (shouldFetchExperiences) {
+        await fetchExperiencesData(user.id)
+      }
+
+    } catch (err) {
+      const e = err as Error
+      console.error("Error loading user profile:", e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchProfileData = async (user: { id: string; email?: string }) => {
+    try {
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .maybeSingle()
-  
+
       if (profileError && profileError.code !== "PGRST116") throw profileError
-  
+
+      let profileToSet: Profile
+
       if (!profileData) {
         // Create a default profile
         const { error: insertError } = await supabase
@@ -86,33 +144,46 @@ export default function ProfilePage() {
             avatar_url: ""
           }])
         if (insertError) throw insertError
-  
-        setProfile({
+
+        profileToSet = {
           id: user.id,
           email: user.email ?? "",
           name: "",
           about: "",
           linkedin: "",
           avatar_url: ""
-        })
+        }
       } else {
-        setProfile(profileData)
+        profileToSet = profileData
       }
+
+      // Update cache and state
+      cache.profile = profileToSet
+      cache.lastFetch.profile = Date.now()
+      setProfile(profileToSet)
+    } catch (error) {
+      console.error("Error fetching profile:", error)
+    }
+  }
+
+  const fetchExperiencesData = async (userId: string) => {
+    try {
       // fetch interview experiences
       const { data: expData, error: expError } = await supabase
         .from("interview_experiences")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
       
       if (!expError && expData) {
-        setExperiences(expData as InterviewExperience[])
+        const experiencesData = expData as InterviewExperience[]
+        // Update cache and state
+        cache.experiences = experiencesData
+        cache.lastFetch.experiences = Date.now()
+        setExperiences(experiencesData)
       }
-    } catch (err) {
-      const e = err as Error
-      console.error("Error loading user profile:", e.message)
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      console.error("Error fetching experiences:", error)
     }
   }
   
@@ -138,6 +209,10 @@ export default function ProfilePage() {
         .upsert(updates)
 
       if (error) throw error
+
+      // Update cache with new profile data
+      cache.profile = { ...profile, ...updates }
+      cache.lastFetch.profile = Date.now()
 
       setMessage('Profile updated successfully!')
       setTimeout(() => setMessage(''), 3000)
@@ -195,7 +270,13 @@ export default function ProfilePage() {
 
       if (updateError) throw updateError
 
-      setProfile(prev => ({ ...prev, avatar_url: data.publicUrl }))
+      const updatedProfile = { ...profile, avatar_url: data.publicUrl }
+      setProfile(updatedProfile)
+      
+      // Update cache
+      cache.profile = updatedProfile
+      cache.lastFetch.profile = Date.now()
+
       setMessage('Profile picture updated successfully!')
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
@@ -230,8 +311,12 @@ export default function ProfilePage() {
 
       if (error) throw error
 
-      // Remove from local state
-      setExperiences(prev => prev.filter(exp => exp.id !== experienceId))
+      // Remove from local state and cache
+      const updatedExperiences = experiences.filter(exp => exp.id !== experienceId)
+      setExperiences(updatedExperiences)
+      cache.experiences = updatedExperiences
+      cache.lastFetch.experiences = Date.now()
+
       setMessage('Experience deleted successfully!')
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
@@ -243,11 +328,17 @@ export default function ProfilePage() {
   }
 
   async function handleLogout() {
+    // Clear cache on logout
+    cache.profile = null
+    cache.experiences = null
+    cache.lastFetch.profile = 0
+    cache.lastFetch.experiences = 0
+    
     await supabase.auth.signOut()
     router.push('/')
   }
 
-  if (loading) {
+  if (loading && !cache.profile && !cache.experiences) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-white text-xl">Loading profile...</div>
@@ -276,11 +367,13 @@ export default function ProfilePage() {
             <div className="relative group">
               <div className="w-24 h-24 rounded-full bg-slate-700 border-4 border-purple-500/30 overflow-hidden mb-4">
                 {profile.avatar_url ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
+                  <Image 
+                  src={profile.avatar_url} 
+                  alt="Profile" 
+                  width={96}
+                  height={96}
+                  className="w-full h-full object-cover"
+                />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-purple-200 text-2xl font-bold">
                     {profile.name ? profile.name.charAt(0).toUpperCase() : profile.email.charAt(0).toUpperCase()}
@@ -394,7 +487,8 @@ export default function ProfilePage() {
             </div>
           </form>
         </div>
-        {/* ---- Interview Experiences Section ---- */}
+
+        {/* Interview Experiences Section */}
         <div className="mt-12">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -466,10 +560,6 @@ export default function ProfilePage() {
                         )}
                       </button>
                     </div>
-                    
-                    {/* <p className="text-gray-300 leading-relaxed mb-4 line-clamp-3 hover:text-gray-200 transition-colors">
-                      {exp.content || 'No content provided'}
-                    </p> */}
                     
                     <p className="text-xs text-gray-500">
                        {new Date(exp.created_at).toLocaleDateString('en-US', {

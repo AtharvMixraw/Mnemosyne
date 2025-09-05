@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ProfileProvider } from './contexts/ProfileContext'
 import { Analytics } from '@vercel/analytics/next';
+import { DataProvider } from "./contexts/DataContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,10 +35,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ProfileProvider>
-          {children}
-          <Analytics />
-        </ProfileProvider>
+        <DataProvider>
+          <ProfileProvider>
+            {children}
+            <Analytics />
+          </ProfileProvider>
+        </DataProvider>
       </body>
     </html>
   );
