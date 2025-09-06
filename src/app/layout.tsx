@@ -4,6 +4,8 @@ import "./globals.css";
 import { ProfileProvider } from './contexts/ProfileContext'
 import { Analytics } from '@vercel/analytics/next';
 import { DataProvider } from "./contexts/DataContext";
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +41,7 @@ export default function RootLayout({
           <ProfileProvider>
             {children}
             <Analytics />
+            <SpeedInsights />
           </ProfileProvider>
         </DataProvider>
       </body>
