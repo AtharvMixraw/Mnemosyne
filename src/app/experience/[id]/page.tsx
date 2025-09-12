@@ -1,4 +1,4 @@
-// app/experience/[id]/page.tsx - Updated version with likes functionality
+// app/experience/[id]/page.tsx - Mobile-optimized version
 
 "use client";
 
@@ -25,13 +25,6 @@ interface Experience {
     linkedin: string;
   };
 }
-
-// interface Like {
-//   id: string;
-//   user_id: string;
-//   experience_id: string;
-//   created_at: string;
-// }
 
 // Component to render formatted content safely
 const FormattedContent = ({ content }: { content: string }) => {
@@ -132,13 +125,13 @@ const FormattedContent = ({ content }: { content: string }) => {
         // Quotes
         if (line.startsWith('> ')) {
           return (
-            <blockquote key={index} className="border-l-4 border-purple-400 pl-6 py-2 my-4 bg-slate-800/30 rounded-r-lg">
+            <blockquote key={index} className="border-l-4 border-purple-400 pl-4 sm:pl-6 py-2 my-4 bg-slate-800/30 rounded-r-lg">
               <p className="italic text-gray-300 text-lg">{line.slice(2)}</p>
             </blockquote>
           );
         }
         
-        // Headers (if you want to support # headers)
+        // Headers
         if (line.startsWith('# ')) {
           return (
             <h3 key={index} className="text-xl font-bold text-white mt-6 mb-3 border-b border-slate-700 pb-2">
@@ -194,14 +187,14 @@ export default function ExperienceDetails() {
 
   const getCurrentUser = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        setCurrentUserId(session.user.id)
+        setCurrentUserId(session.user.id);
       }
     } catch (err) {
-      console.error("Error getting current user:", err)
+      console.error("Error getting current user:", err);
     }
-  }
+  };
 
   const fetchExperience = async () => {
     try {
@@ -284,7 +277,6 @@ export default function ExperienceDetails() {
 
   const handleLike = async () => {
     if (!currentUserId) {
-      // Redirect to login if not authenticated
       router.push('/login');
       return;
     }
@@ -327,7 +319,9 @@ export default function ExperienceDetails() {
         setLikesCount(prev => prev + 1);
       }
     } catch (err) {
-      console.error("Error handling like:", err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error handling like:", err);
+      }
     } finally {
       setLikingInProgress(false);
     }
@@ -335,7 +329,7 @@ export default function ExperienceDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
           <p className="text-white">Loading experience...</p>
@@ -346,12 +340,12 @@ export default function ExperienceDetails() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-4">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-red-400 text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-white mb-4">Oops!</h1>
           <p className="text-gray-300 mb-6">{error}</p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
@@ -360,7 +354,7 @@ export default function ExperienceDetails() {
             </button>
             <Link
               href="/dashboard"
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition"
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition text-center"
             >
               Back to Dashboard
             </Link>
@@ -372,12 +366,12 @@ export default function ExperienceDetails() {
 
   if (!experience) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-white">Experience not found</p>
+          <p className="text-white mb-4">Experience not found</p>
           <Link
             href="/dashboard"
-            className="mt-4 inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
+            className="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
           >
             Back to Dashboard
           </Link>
@@ -388,9 +382,9 @@ export default function ExperienceDetails() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
         {/* Navigation */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Link
             href="/dashboard"
             className="inline-flex items-center text-purple-300 hover:text-purple-200 transition"
@@ -403,25 +397,25 @@ export default function ExperienceDetails() {
         </div>
 
         {/* Experience Card */}
-        <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-8 shadow-2xl">
+        <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 sm:p-6 lg:p-8 shadow-2xl">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-4xl font-bold text-white mb-3">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight">
               {experience.heading || "Interview Experience"}
             </h1>
-            <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex flex-wrap gap-2 sm:gap-4 text-sm">
               {experience.position && (
-                <span className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg">
+                <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-700 text-gray-200 rounded-lg text-xs sm:text-sm">
                    Position: {experience.position}
                 </span>
               )}
               {experience.mode && (
-                <span className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg">
+                <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-700 text-gray-200 rounded-lg text-xs sm:text-sm">
                    Mode: {experience.mode}
                 </span>
               )}
               <span
-                className={`px-4 py-2 rounded-lg font-semibold ${
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm ${
                   experience.selected
                     ? "bg-green-600 text-white"
                     : "bg-red-600 text-white"
@@ -435,20 +429,22 @@ export default function ExperienceDetails() {
           {/* Author Info */}
           <div className="mb-6 pb-6 border-b border-slate-700">
             <div 
-              className="flex items-center gap-4 cursor-pointer hover:bg-slate-700/30 rounded-lg p-3 -m-3 transition-colors"
+              className="flex items-center gap-3 sm:gap-4 cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 sm:p-3 -m-2 sm:-m-3 transition-colors"
               onClick={() => {
                 if (experience.user_id === currentUserId) {
-                  router.push('/profile')
+                  router.push('/profile');
                 } else {
-                  router.push(`/profile/${experience.user_id}`)
+                  router.push(`/profile/${experience.user_id}`);
                 }
               }}
             >
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 text-xl font-bold">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-purple-200 text-lg sm:text-xl font-bold flex-shrink-0">
                 {experience.profiles?.avatar_url ? (
                   <Image
                     src={experience.profiles.avatar_url} 
                     alt={experience.profiles.name || "User"} 
+                    width={64}
+                    height={64}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -457,25 +453,25 @@ export default function ExperienceDetails() {
                     : "U"
                 )}
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-white hover:text-purple-200 transition-colors">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg sm:text-xl font-semibold text-white hover:text-purple-200 transition-colors truncate">
                   {experience.user_id === currentUserId 
                     ? "You" 
                     : (experience.profiles?.name || "Unknown User")
                   }
                 </h3>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-400 text-xs sm:text-sm">
                    Shared on {new Date(experience.created_at).toLocaleDateString('en-US', {
-                    weekday: 'long',
+                    weekday: 'short',
                     year: 'numeric',
-                    month: 'long',
+                    month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
                   })}
                 </p>
                 {experience.profiles?.about && (
-                  <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+                  <p className="text-gray-500 text-xs sm:text-sm mt-1 line-clamp-2">
                     {experience.profiles.about}
                   </p>
                 )}
@@ -484,9 +480,9 @@ export default function ExperienceDetails() {
           </div>
 
           {/* Experience Content */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-purple-200 mb-4"> Interview Experience</h2>
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-semibold text-purple-200 mb-4">📝 Interview Experience</h2>
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 sm:p-6">
               {experience.content ? (
                 <FormattedContent content={experience.content} />
               ) : (
@@ -497,11 +493,11 @@ export default function ExperienceDetails() {
 
           {/* Like Section */}
           <div className="mb-6 pb-6 border-b border-slate-700">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <button
                 onClick={handleLike}
                 disabled={likingInProgress || !currentUserId}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                className={`flex items-center justify-center sm:justify-start gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 ${
                   isLiked 
                     ? "bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400" 
                     : "bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/50 text-gray-400 hover:text-red-400"
@@ -533,7 +529,7 @@ export default function ExperienceDetails() {
               </button>
               
               {!currentUserId && (
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 text-sm text-center sm:text-left">
                   <Link href="/login" className="text-purple-400 hover:text-purple-300 underline">
                     Login
                   </Link> to like this experience
@@ -543,31 +539,35 @@ export default function ExperienceDetails() {
           </div>
 
           {/* Actions */}
-          <div className="flex justify-between items-center pt-6 border-t border-slate-700">
-            <Link
-              href="/dashboard"
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition font-medium"
-            >
-              ← Back to All Experiences
-            </Link>
+          <div className="pt-6 border-t border-slate-700 space-y-4 sm:space-y-0">
+            {/* Back button - always full width on mobile */}
+            <div className="sm:flex sm:justify-between sm:items-center">
+              <Link
+                href="/dashboard"
+                className="block w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition font-medium text-center"
+              >
+                ← Back to All Experiences
+              </Link>
+            </div>
             
-            <div className="flex gap-3">
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
               {experience.user_id !== currentUserId && (
                 <button
                   onClick={() => {
-                    router.push(`/profile/${experience.user_id}`)
+                    router.push(`/profile/${experience.user_id}`);
                   }}
-                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium"
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium text-center"
                 >
-                  View Profile
+                   View Profile
                 </button>
               )}
               
               <Link
                 href="/interview"
-                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium text-center"
               >
-                Share Your Experience +
+                 Share Your Experience
               </Link>
             </div>
           </div>
