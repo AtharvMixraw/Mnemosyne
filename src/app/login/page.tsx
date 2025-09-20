@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [message, setMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: { preventDefault: () => void }) {
     e.preventDefault()
     setIsLoading(true)
     setMessage("")
@@ -32,128 +32,159 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden flex items-center justify-center p-6">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0">
-        {/* Floating orbs */}
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/10 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute top-3/4 right-1/4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl animate-pulse" style={{animationDelay: '1s'}}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-40 h-40 bg-pink-500/10 rounded-full blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
-        
-        {/* Grid pattern */}
-        <div className="absolute inset-0 opacity-[0.03]" 
-             style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)', backgroundSize: '40px 40px'}}>
-        </div>
-        
-        {/* Subtle scan lines */}
-        <div className="absolute inset-0 opacity-[0.02]" 
-             style={{background: 'linear-gradient(90deg, transparent 50%, rgba(255,255,255,0.1) 50%)', backgroundSize: '2px 100%'}}>
-        </div>
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Header with enhanced animations */}
-        <div className="text-center mb-8 animate-fade-in">
-          <Link href="/" className="inline-block mb-6 group">
-            <h1 className="text-4xl font-bold text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-400 group-hover:to-pink-400 transition-all duration-300 transform group-hover:scale-105">
-              MNEMOSYNE
-            </h1>
-          </Link>
-          <h2 className="text-xl text-purple-200 mb-2 animate-slide-up" style={{animationDelay: '0.1s'}}>Welcome Back</h2>
-          <p className="text-gray-400 text-sm animate-slide-up" style={{animationDelay: '0.2s'}}>Sign in to your account to continue</p>
-        </div>
-
-        {/* Enhanced Login Form with glassmorphism */}
-        <div className="relative group animate-slide-up" style={{animationDelay: '0.3s'}}>
-          {/* Glow effect */}
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition duration-1000"></div>
-          
-          <div className="relative bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-xl p-8 shadow-2xl hover:shadow-purple-500/10 transition-all duration-300">
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-purple-200 mb-2">
-                  Email Address
-                </label>
-                <div className="relative group">
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    required
-                    className="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-gray-400 px-4 py-3 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 hover:bg-slate-700/70 focus:shadow-lg focus:shadow-purple-500/10"
-                  />
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+    <>
+      <div className="bg-slate-50 text-slate-900 min-h-screen font-['Manrope',sans-serif]">
+        <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+          {/* Header */}
+          <header className="sticky top-0 z-10 w-full bg-slate-50/80 backdrop-blur-md animate-slide-down">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex h-16 items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-8 w-8 transition-transform duration-300 hover:scale-110">
+                    <img 
+                      src="/icon-no-bg.png" 
+                      alt="Mnemosyne Logo" 
+                      className="h-full w-full object-contain animate-pulse"
+                    />
+                  </div>
+                  <Link href="/" className="text-xl font-bold tracking-tight hover:text-[#13a4ec] transition-all duration-300 hover:scale-105">
+                    Mnemosyne
+                  </Link>
                 </div>
+                <div className="hidden items-center gap-8 md:flex">
+                  <Link href="/signup" className="flex h-9 items-center justify-center rounded-md bg-slate-200 px-4 text-sm font-semibold text-slate-800 transition-all duration-200 hover:bg-slate-300 hover:scale-105">
+                    Sign up
+                  </Link>
+                </div>
+                <button className="md:hidden transition-transform duration-200 hover:scale-110">
+                  <svg aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
+                  </svg>
+                </button>
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-purple-200 mb-2">
-                  Password
-                </label>
-                <div className="relative group">
-                  <input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    className="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-gray-400 px-4 py-3 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 hover:bg-slate-700/70 focus:shadow-lg focus:shadow-purple-500/10"
-                  />
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                </div>
-              </div>
-
-              {message && (
-                <div className="bg-red-900/30 backdrop-blur-sm border border-red-500/50 rounded-lg p-3 animate-shake">
-                  <p className="text-red-200 text-sm">{message}</p>
-                </div>
-              )}
-
-              <button 
-                type="submit" 
-                disabled={isLoading}
-                className="relative w-full overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-purple-800 disabled:to-purple-800 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] disabled:transform-none shadow-lg hover:shadow-xl hover:shadow-purple-500/25 group"
-              >
-                <span className="relative z-10">
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </span>
-                {/* Button shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              </button>
-            </form>
-
-            {/* Footer */}
-            <div className="mt-6 text-center">
-              <p className="text-gray-400 text-sm">
-                Don&apos;t have an account?{" "}
-                <Link href="/signup" className="text-purple-400 hover:text-purple-300 font-medium transition-colors duration-200 hover:underline">
-                  Sign up here
-                </Link>
-              </p>
             </div>
-          </div>
-        </div>
+          </header>
 
-        {/* Back to Home with enhanced hover effect */}
-        <div className="text-center mt-6 animate-slide-up" style={{animationDelay: '0.4s'}}>
-          <Link href="/" className="text-gray-400 hover:text-purple-300 text-sm transition-all duration-200 hover:transform hover:translate-x-[-4px] inline-flex items-center gap-1">
-            <span>←</span> Back to Home
-          </Link>
+          {/* Main Content */}
+          <main className="flex flex-1 items-center justify-center py-12 sm:px-6 lg:px-8">
+            <div className="w-full max-w-md space-y-8">
+              <div className="animate-fade-in-down">
+                <h2 className="text-center text-3xl font-extrabold tracking-tight text-slate-900">
+                  Welcome back
+                </h2>
+                <p className="mt-2 text-center text-sm text-slate-600 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+                  Sign in to your account to continue
+                </p>
+              </div>
+
+              <div className="mt-8 space-y-6 rounded-lg bg-white p-8 shadow-lg hover:shadow-xl transition-all duration-300 animate-scale-in" style={{animationDelay: '0.4s'}}>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="animate-slide-in-left" style={{animationDelay: '0.6s'}}>
+                    <label className="sr-only" htmlFor="email">Email</label>
+                    <input
+                      autoComplete="email"
+                      className="relative block w-full appearance-none rounded-md border border-slate-300 px-3 py-3 text-slate-900 placeholder-slate-500 focus:z-10 focus:border-[#13a4ec] focus:outline-none focus:ring-[#13a4ec] focus:scale-105 sm:text-sm transition-all duration-200 hover:border-slate-400"
+                      id="email"
+                      name="email"
+                      placeholder="Email address"
+                      required
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="animate-slide-in-right" style={{animationDelay: '0.8s'}}>
+                    <label className="sr-only" htmlFor="password">Password</label>
+                    <input
+                      autoComplete="current-password"
+                      className="relative block w-full appearance-none rounded-md border border-slate-300 px-3 py-3 text-slate-900 placeholder-slate-500 focus:z-10 focus:border-[#13a4ec] focus:outline-none focus:ring-[#13a4ec] focus:scale-105 sm:text-sm transition-all duration-200 hover:border-slate-400"
+                      id="password"
+                      name="password"
+                      placeholder="Password"
+                      required
+                      type="password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                    />
+                  </div>
+
+                  {message && (
+                    <div className="bg-red-50 border border-red-200 rounded-md p-3 animate-shake">
+                      <p className="text-red-600 text-sm">{message}</p>
+                    </div>
+                  )}
+
+                  <div className="animate-bounce-in" style={{animationDelay: '1.0s'}}>
+                    <button
+                      className="group relative flex w-full justify-center rounded-md border border-transparent bg-[#13a4ec] py-3 px-4 text-sm font-semibold text-white hover:bg-opacity-90 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#13a4ec] focus:ring-offset-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 overflow-hidden"
+                      type="submit"
+                      disabled={isLoading}
+                    >
+                      <span className="relative z-10">
+                        {isLoading ? "Signing in..." : "Sign in"}
+                      </span>
+                      {/* Button shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </button>
+                  </div>
+                </form>
+
+                <div className="text-center animate-fade-in" style={{animationDelay: '1.2s'}}>
+                  <Link 
+                    className="text-sm font-medium text-slate-600 hover:text-[#13a4ec] transition-colors duration-200 hover:underline" 
+                    href="/signup"
+                  >
+                    Don&apos;t have an account? Sign up
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
 
       <style jsx>{`
-        @keyframes fade-in {
+        @keyframes fade-in-down {
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fade-in-up {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
         
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(30px); }
+        @keyframes slide-down {
+          from { opacity: 0; transform: translateY(-100%); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes scale-in {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes slide-in-left {
+          from { opacity: 0; transform: translateX(-30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes slide-in-right {
+          from { opacity: 0; transform: translateX(30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes bounce-in {
+          0% { opacity: 0; transform: scale(0.3) translateY(50px); }
+          50% { opacity: 1; transform: scale(1.05) translateY(-10px); }
+          70% { transform: scale(0.9) translateY(0); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         
         @keyframes shake {
@@ -162,12 +193,41 @@ export default function LoginPage() {
           75% { transform: translateX(4px); }
         }
         
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out;
+        .animate-fade-in-down {
+          animation: fade-in-down 0.8s ease-out;
         }
         
-        .animate-slide-up {
-          animation: slide-up 0.8s ease-out;
+        .animate-fade-in-up {
+          animation: fade-in-up 0.8s ease-out;
+          animation-fill-mode: both;
+        }
+        
+        .animate-slide-down {
+          animation: slide-down 0.6s ease-out;
+        }
+        
+        .animate-scale-in {
+          animation: scale-in 0.6s ease-out;
+          animation-fill-mode: both;
+        }
+        
+        .animate-slide-in-left {
+          animation: slide-in-left 0.6s ease-out;
+          animation-fill-mode: both;
+        }
+        
+        .animate-slide-in-right {
+          animation: slide-in-right 0.6s ease-out;
+          animation-fill-mode: both;
+        }
+        
+        .animate-bounce-in {
+          animation: bounce-in 0.8s ease-out;
+          animation-fill-mode: both;
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
           animation-fill-mode: both;
         }
         
@@ -175,6 +235,6 @@ export default function LoginPage() {
           animation: shake 0.5s ease-in-out;
         }
       `}</style>
-    </div>
+    </>
   )
 }
