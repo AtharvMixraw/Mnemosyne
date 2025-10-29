@@ -4,6 +4,7 @@ import { useState } from "react"
 import { supabase } from '../../../lib/supabaseClient'
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -33,9 +34,20 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="bg-slate-50 text-slate-900 min-h-screen font-['Manrope',sans-serif]">
+      <div className="relative bg-slate-50 text-slate-900 min-h-screen font-['Manrope',sans-serif]">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <Image
+            src="/auth-bg.jpeg"
+            alt="Background"
+            layout="fill"
+            objectFit="cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-slate-900/40"></div>
+        </div>
         <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
-          {/* Header */}
+          {/* Header
           <header className="sticky top-0 z-10 w-full bg-slate-50/80 backdrop-blur-md animate-slide-down">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex h-16 items-center justify-between">
@@ -63,7 +75,7 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-          </header>
+          </header> */}
 
           {/* Main Content */}
           <main className="flex flex-1 items-center justify-center py-12 sm:px-6 lg:px-8">
@@ -77,7 +89,7 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              <div className="mt-8 space-y-6 rounded-lg bg-white p-8 shadow-lg hover:shadow-xl transition-all duration-300 animate-scale-in" style={{animationDelay: '0.4s'}}>
+              <div className="mt-8 space-y-6 rounded-lg bg-white/90 backdrop-blur-sm p-8 shadow-lg hover:shadow-xl transition-all duration-300 animate-scale-in" style={{animationDelay: '0.4s'}}>
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="animate-slide-in-left" style={{animationDelay: '0.6s'}}>
                     <label className="sr-only" htmlFor="email">Email</label>

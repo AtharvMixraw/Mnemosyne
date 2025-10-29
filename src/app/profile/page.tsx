@@ -340,42 +340,46 @@ export default function ProfilePage() {
 
   if (loading && !cache.profile && !cache.experiences) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#101c22] flex items-center justify-center">
         <div className="text-white text-xl">Loading profile...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#101c22] p-4 sm:p-6 md:p-8">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block mb-6">
-            <h1 className="text-3xl font-bold text-white hover:text-purple-200 transition-colors duration-200">
-              MNEMOSYNE
+        <div className="text-center mb-8 px-4 py-8">
+          <Link href="/" className="inline-block mb-2">
+            <h1 className="text-4xl sm:text-5xl font-black text-white hover:text-[#13a4ec] transition-colors duration-200 tracking-tight">
+              Mnemosyne
             </h1>
           </Link>
-          <h2 className="text-xl text-purple-200 mb-2">Your Profile</h2>
-          <p className="text-gray-400 text-sm">Manage your account information</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-300 mb-2">Profile & Settings</h2>
+          <p className="text-[#92b7c9] text-base">Manage your personal information and shared experiences.</p>
         </div>
 
         {/* Profile Card */}
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-8 shadow-2xl">
+        <div style={{
+          backgroundColor: 'rgba(35, 60, 72, 0.5)',
+          backdropFilter: 'blur(12px)',
+          borderColor: 'rgba(50, 85, 103, 0.5)'
+        }} className="border rounded-xl p-6 sm:p-8 shadow-lg mb-12">
           {/* Avatar Section */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-full bg-slate-700 border-4 border-purple-500/30 overflow-hidden mb-4">
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full bg-[#192b33] border-2 border-[#325567] overflow-hidden flex items-center justify-center">
                 {profile.avatar_url ? (
                   <Image 
-                  src={profile.avatar_url} 
-                  alt="Profile" 
-                  width={96}
-                  height={96}
-                  className="w-full h-full object-cover"
-                />
+                    src={profile.avatar_url} 
+                    alt="Profile" 
+                    width={128}
+                    height={128}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-purple-200 text-2xl font-bold">
+                  <div className="text-5xl font-bold text-[#13a4ec]">
                     {profile.name ? profile.name.charAt(0).toUpperCase() : profile.email.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -383,10 +387,11 @@ export default function ProfilePage() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute -bottom-2 -right-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white p-2 rounded-full shadow-lg transition-colors duration-200"
+                className="absolute bottom-0 right-0 bg-[#233c48] hover:bg-[#13a4ec] disabled:bg-[#192b33] text-white p-2 rounded-full border-2 border-[#101c22] transition-all duration-200 hover:scale-110"
+                aria-label="Edit profile picture"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </button>
             </div>
@@ -397,56 +402,59 @@ export default function ProfilePage() {
               accept="image/*"
               className="hidden"
             />
-            {uploading && <p className="text-purple-200 text-sm">Uploading...</p>}
+            {uploading && <p className="text-[#13a4ec] text-sm mt-2 animate-pulse">Uploading...</p>}
           </div>
 
           {/* Profile Form */}
           <form onSubmit={(e) => { e.preventDefault(); updateProfile(); }} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-purple-200 mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={profile.email}
-                disabled
-                className="w-full bg-slate-700/30 border border-slate-600 text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed"
-              />
-              <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div className="sm:col-span-1">
+                <label htmlFor="email" className="block text-base font-medium text-white mb-2">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={profile.email}
+                  disabled
+                  style={{ backgroundColor: 'rgba(25, 43, 51, 0.7)' }}
+                  className="w-full border border-[#325567] text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed opacity-60 h-14"
+                />
+                <p className="text-sm text-[#92b7c9] mt-2">Your email address cannot be changed.</p>
+              </div>
+
+              <div className="sm:col-span-1">
+                <label htmlFor="name" className="block text-base font-medium text-white mb-2">
+                  Full Name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={profile.name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-[#192b33] border border-[#325567] text-white placeholder-[#92b7c9] px-4 py-3 rounded-lg focus:outline-none focus:border-[#13a4ec] focus:ring-2 focus:ring-[#13a4ec]/50 transition-all duration-200 h-14"
+                />
+              </div>
             </div>
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-purple-200 mb-2">
-                Full Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                placeholder="Enter your full name"
-                value={profile.name}
-                onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-gray-400 px-4 py-3 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="about" className="block text-sm font-medium text-purple-200 mb-2">
+              <label htmlFor="about" className="block text-base font-medium text-white mb-2">
                 About
               </label>
               <textarea
                 id="about"
                 rows={4}
-                placeholder="Tell us about yourself..."
+                placeholder="Tell us a little about yourself..."
                 value={profile.about}
                 onChange={(e) => setProfile(prev => ({ ...prev, about: e.target.value }))}
-                className="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-gray-400 px-4 py-3 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 resize-none"
+                className="w-full bg-[#192b33] border border-[#325567] text-white placeholder-[#92b7c9] px-4 py-3 rounded-lg focus:outline-none focus:border-[#13a4ec] focus:ring-2 focus:ring-[#13a4ec]/50 transition-all duration-200 resize-y"
               />
             </div>
 
             <div>
-              <label htmlFor="linkedin" className="block text-sm font-medium text-purple-200 mb-2">
-                LinkedIn Profile
+              <label htmlFor="linkedin" className="block text-base font-medium text-white mb-2">
+                LinkedIn URL
               </label>
               <input
                 id="linkedin"
@@ -454,35 +462,36 @@ export default function ProfilePage() {
                 placeholder="https://linkedin.com/in/yourprofile"
                 value={profile.linkedin}
                 onChange={(e) => setProfile(prev => ({ ...prev, linkedin: e.target.value }))}
-                className="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-gray-400 px-4 py-3 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200"
+                className="w-full bg-[#192b33] border border-[#325567] text-white placeholder-[#92b7c9] px-4 py-3 rounded-lg focus:outline-none focus:border-[#13a4ec] focus:ring-2 focus:ring-[#13a4ec]/50 transition-all duration-200 h-14"
               />
             </div>
 
             {message && (
-              <div className={`rounded-lg p-3 border ${
+              <div className={`rounded-lg p-3 text-center text-sm ${
                 message.includes('successfully') 
-                  ? 'bg-green-900/20 border-green-500/50 text-green-200' 
-                  : 'bg-red-900/20 border-red-500/50 text-red-200'
+                  ? 'bg-green-500/20 text-green-300' 
+                  : 'bg-red-500/20 text-red-300'
               }`}>
-                <p className="text-sm">{message}</p>
+                <p>{message}</p>
               </div>
             )}
 
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none shadow-lg hover:shadow-xl"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-
+            <div className="flex flex-col-reverse items-center gap-4 pt-4 sm:flex-row">
               <button
                 type="button"
                 onClick={handleLogout}
-                className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="w-full sm:w-auto sm:px-8 bg-transparent border border-gray-600 text-gray-300 font-bold py-3 px-4 rounded-lg transition-colors duration-200 hover:bg-gray-700/50 hover:text-white"
               >
                 Logout
+              </button>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full sm:flex-1 bg-[#13a4ec] hover:scale-[1.02] disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg transition-transform duration-200 hover:shadow-lg disabled:transform-none"
+                style={{ boxShadow: '0 4px 14px 0 rgba(19, 164, 236, 0.3)' }}
+              >
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </form>
@@ -490,14 +499,14 @@ export default function ProfilePage() {
 
         {/* Interview Experiences Section */}
         <div className="mt-12">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-semibold text-purple-200">Your Interview Experiences</h2>
-              <p className="text-gray-400 text-sm mt-1">Manage your shared experiences</p>
+          <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 mb-6">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-white">My Interview Experiences</h2>
+              <p className="text-[#92b7c9] mt-1">A list of all the interviews you have shared.</p>
             </div>
             <Link 
               href="/interview" 
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition-colors duration-200 flex items-center gap-2"
+              className="bg-[#233c48] hover:bg-[#325567] text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm font-bold"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -507,67 +516,73 @@ export default function ProfilePage() {
           </div>
 
           {experiences.length === 0 ? (
-            <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-8 text-center">
-              <div className="text-gray-400 text-6xl mb-4">📝</div>
-              <h3 className="text-xl font-semibold text-gray-300 mb-2">No experiences yet</h3>
-              <p className="text-gray-400 mb-6">Share your first interview experience to help others!</p>
+            <div className="rounded-lg border-2 border-dashed border-[#325567] bg-[#192b33]/50 py-12 px-6 text-center">
+              <div className="text-6xl mb-4">🤔</div>
+              <h3 className="text-xl font-bold text-white mb-2">No items yet</h3>
+              <p className="text-base text-[#92b7c9] mb-6">You haven&apos;t shared any interview experiences.<br/>Help the community by adding your first one!</p>
               <Link 
                 href="/interview" 
-                className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors duration-200"
+                className="inline-flex items-center gap-2 bg-[#13a4ec] hover:scale-105 text-white px-4 py-2 rounded-lg transition-transform duration-200 text-sm font-bold"
               >
-                Share Your Experience
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Share Your First Experience
               </Link>
             </div>
           ) : (
             <div className="space-y-4">
               {experiences.map(exp => (
                 <Link key={exp.id} href={`/experience/${exp.id}`} className="block">
-                  <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 hover:border-purple-500/30 cursor-pointer">
-                    <div className="flex justify-between items-start mb-4">
+                  <div className="bg-[#192b33] border border-transparent rounded-lg p-4 transition-all duration-200 hover:border-[#325567] hover:bg-[#233c48]/50 cursor-pointer group">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-white mb-2 hover:text-purple-100 transition-colors">
+                        <h3 className="text-lg font-bold text-white">
                           {exp.heading || 'Untitled Experience'}
                         </h3>
-                        <div className="flex flex-wrap gap-3 text-sm">
-                          {exp.position && (
-                            <span className="px-3 py-1 bg-slate-700/70 text-gray-200 rounded-lg">
-                               {exp.position}
-                            </span>
-                          )}
-                          {exp.mode && (
-                            <span className="px-3 py-1 bg-slate-700/70 text-gray-200 rounded-lg">
-                               {exp.mode}
-                            </span>
-                          )}
-                          <span className={`px-3 py-1 rounded-lg font-medium ${exp.selected ? 'bg-green-600/80 text-white' : 'bg-red-600/80 text-white'}`}>
-                            {exp.selected ? " Selected" : " Not Selected"}
-                          </span>
-                        </div>
                       </div>
                       
                       <button
                         onClick={(e) => deleteExperience(exp.id, e)}
                         disabled={deleting === exp.id}
-                        className="ml-4 p-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 hover:border-red-500/60 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                        className="ml-4 p-2 rounded-full text-gray-400 transition-colors duration-200 hover:bg-red-500/20 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Delete experience"
                       >
                         {deleting === exp.id ? (
-                          <div className="animate-spin w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full"></div>
+                          <div className="animate-spin w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full"></div>
                         ) : (
-                          <svg className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
                         )}
                       </button>
                     </div>
                     
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {exp.position && (
+                        <span className="inline-flex items-center rounded-full bg-[#13a4ec]/20 px-3 py-1 text-xs font-medium text-[#13a4ec]">
+                          {exp.position}
+                        </span>
+                      )}
+                      {exp.mode && (
+                        <span className="inline-flex items-center rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-medium text-cyan-300">
+                          {exp.mode}
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                        exp.selected 
+                          ? 'bg-green-500/20 text-green-300' 
+                          : 'bg-yellow-500/20 text-yellow-300'
+                      }`}>
+                        {exp.selected ? "Received Offer" : "Final Round"}
+                      </span>
+                    </div>
+                    
                     <p className="text-xs text-gray-500">
-                       {new Date(exp.created_at).toLocaleDateString('en-US', {
+                      Shared on: {new Date(exp.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                        month: 'short',
+                        day: 'numeric'
                       })}
                     </p>
                   </div>
@@ -578,12 +593,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Navigation */}
-        <div className="text-center mt-8">
-          <Link href="/dashboard" className="text-purple-400 hover:text-purple-300 transition-colors duration-200 inline-flex items-center gap-2">
+        <div className="text-center mt-12 py-12">
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-[#92b7c9] hover:text-[#13a4ec] transition-colors duration-200">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
-            Go to Dashboard
+            Back to Dashboard
           </Link>
         </div>
       </div>
