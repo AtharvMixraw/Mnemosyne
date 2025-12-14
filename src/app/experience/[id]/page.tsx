@@ -340,7 +340,7 @@ export default function ExperienceDetails() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#101c22] flex items-center justify-center px-4">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-red-400 text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-white mb-4">Oops!</h1>
@@ -381,7 +381,7 @@ export default function ExperienceDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-[#101c22] to-slate-900">
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         {/* Navigation */}
         <div className="mb-4 sm:mb-6">
@@ -417,7 +417,7 @@ export default function ExperienceDetails() {
               <span
                 className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm ${
                   experience.selected
-                    ? "bg-green-600 text-white"
+                    ? "bg-[#06b6d4] text-white"
                     : "bg-red-600 text-white"
                 }`}
               >
@@ -557,7 +557,7 @@ export default function ExperienceDetails() {
                   onClick={() => {
                     router.push(`/profile/${experience.user_id}`);
                   }}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium text-center"
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-[#64748b] hover:bg-purple-700 text-white rounded-lg transition font-medium text-center"
                 >
                    View Profile
                 </button>
@@ -565,7 +565,7 @@ export default function ExperienceDetails() {
               
               <Link
                 href="/interview"
-                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium text-center"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-[#64748b] hover:bg-green-700 text-white rounded-lg transition font-medium text-center"
               >
                  Share Your Experience
               </Link>

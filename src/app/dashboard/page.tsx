@@ -168,7 +168,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 sm:p-6">
+    <div className="min-h-screen bg-[#101c22] p-4 sm:p-6">
       <div className="max-w-3xl mx-auto">
         
         {/* Header - Mobile Optimized */}
@@ -411,7 +411,7 @@ export default function Dashboard() {
                   )}
                   <span
                     className={`px-2 py-1 sm:px-3 rounded-lg font-medium flex-shrink-0 ${
-                      exp.selected ? "bg-green-600/80 text-white" : "bg-red-600/80 text-white"
+                      exp.selected ? "bg-[#06b6d4] text-white" : "bg-[#1e293b] text-white"
                     }`}
                   >
                     {exp.selected ? " Selected" : " Not Selected"}
