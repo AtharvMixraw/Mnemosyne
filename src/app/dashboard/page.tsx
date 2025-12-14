@@ -214,7 +214,7 @@ export default function Dashboard() {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow transition-colors"
+                  className="px-5 py-3 bg-[#64748b] hover:bg-[#64748b] text-white rounded-lg shadow transition-colors"
                 >
                   Logout
                 </button>
@@ -261,7 +261,7 @@ export default function Dashboard() {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow"
+                  className="px-5 py-2 bg-[#64748b] hover:bg-red-700 text-white rounded-lg shadow"
                 >
                   Logout
                 </button>
